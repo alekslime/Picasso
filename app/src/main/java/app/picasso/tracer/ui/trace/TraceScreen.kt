@@ -400,7 +400,16 @@ fun TraceScreen(
                     modifier = Modifier.align(Alignment.BottomCenter),
                 ) {
                     val filters = TraceFilter.entries
-                    CleanTraceDeck(
+                    Column {
+                        if (state.showTutorial) {
+                            TutorialCard(
+                                step = state.tutorialStep,
+                                onNext = viewModel::nextTutorialStep,
+                                onSkip = viewModel::skipTutorial,
+                                modifier = Modifier.padding(bottom = 12.dp),
+                            )
+                        }
+                        CleanTraceDeck(
                         opacity = state.opacity,
                         locked = state.locked,
                         torchOn = cameraState.torchOn,
@@ -426,8 +435,9 @@ fun TraceScreen(
                             viewModel.setFilter(filters[(state.filter.ordinal + 1) % filters.size])
                         },
                         onRecord = ::onRecordToggle,
-                        onExpand = { panelVisible = true },
-                    )
+                            onExpand = { viewModel.onTutorialExpand(); panelVisible = true },
+                        )
+                    }
                 }
             }
 

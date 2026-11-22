@@ -72,6 +72,8 @@ data class TraceUiState(
     val timelapseIntervalSec: Int = 10,
     val timelapseCount: Int = 0,
     val beforeAfterSaving: Boolean = false,
+    val showTutorial: Boolean = false,
+    val tutorialStep: Int = 0,
 )
 
 @HiltViewModel
@@ -123,6 +125,9 @@ class TraceViewModel @Inject constructor(
                         gridCols = project.gridCols,
                         guideType = project.guideType,
                     )
+                }
+                if (!settings.settings.first().tutorialCompleted) {
+                    _uiState.update { it.copy(showTutorial = true, tutorialStep = 0) }
                 }
                 if (project.filter.needsBitmap()) applyBitmapFilter(project)
             }
@@ -188,6 +193,9 @@ class TraceViewModel @Inject constructor(
 
     /** One gesture frame from the overlay; ignored while locked. Drift is display-only. */
     fun onOverlayGesture(pan: Offset, zoom: Float, rotation: Float) {
+        if (_uiState.value.showTutorial && _uiState.value.tutorialStep == 0) {
+            _uiState.update { it.copy(tutorialStep = 1) }
+        }
         _uiState.update { state ->
             if (state.locked) return@update state
             val next = state.transform.applyGesture(pan.x, pan.y, zoom, rotation)
@@ -200,7 +208,33 @@ class TraceViewModel @Inject constructor(
     }
 
     fun toggleLock() {
-        _uiState.update { it.copy(locked = !it.locked) }
+        _uiState.update { state ->
+            val next = state.copy(locked = !state.locked)
+            if (next.showTutorial && next.tutorialStep == 1 && next.locked) {
+                next.copy(tutorialStep = 2)
+            } else {
+                next
+            }
+        }
+    }
+
+    /** Step 3 finishes when the panel opens; Next/Skip drive it manually too. */
+    fun onTutorialExpand() {
+        if (_uiState.value.showTutorial && _uiState.value.tutorialStep == 2) completeTutorial()
+    }
+
+    fun nextTutorialStep() {
+        val s = _uiState.value
+        if (!s.showTutorial) return
+        if (s.tutorialStep >= 2) completeTutorial()
+        else _uiState.update { it.copy(tutorialStep = it.tutorialStep + 1) }
+    }
+
+    fun skipTutorial() = completeTutorial()
+
+    private fun completeTutorial() {
+        _uiState.update { it.copy(showTutorial = false) }
+        viewModelScope.launch { settings.setTutorialCompleted() }
     }
 
     /** Display transform: user base plus live AR drift when anchored. */
