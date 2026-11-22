@@ -58,8 +58,7 @@ fun CleanTraceDeck(
     torchOn: Boolean,
     filter: TraceFilter,
     gridVisible: Boolean,
-    gridRows: Int,
-    gridCols: Int,
+    gridLabel: String,
     recording: Boolean,
     onOpacity: (Float) -> Unit,
     onToggleLock: () -> Unit,
@@ -106,7 +105,7 @@ fun CleanTraceDeck(
                     .padding(horizontal = 12.dp),
             ) {
                 Text(
-                    "${(opacity * 100).roundToInt()}%   ${filter.name}   $gridRows×$gridCols",
+                    "${(opacity * 100).roundToInt()}%   ${filter.name}   $gridLabel",
                     style = MaterialTheme.typography.labelMedium,
                     color = PicassoPaper,
                 )

@@ -60,6 +60,12 @@
     <string name="toggle_flashlight">Flashlight</string>
     <string name="filters">Filters</string>
     <string name="grid">Grid</string>
+    <string name="guides">Guides</string>
+    <string name="guide_off">Off</string>
+    <string name="guide_grid">Grid</string>
+    <string name="guide_thirds">Thirds</string>
+    <string name="guide_golden">Golden</string>
+    <string name="guide_diagonal">Diagonal</string>
     <string name="strobe">Compare flash</string>
     <string name="strobe_speed">Flash speed</string>
     <string name="steps">Steps</string>

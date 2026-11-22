@@ -65,20 +65,34 @@ private fun FilterChipItem(
 @Composable
 fun GridBar(
     visible: Boolean,
+    type: app.picasso.tracer.domain.model.GuideType,
     rows: Int,
     columns: Int,
     onToggle: () -> Unit,
+    onType: (app.picasso.tracer.domain.model.GuideType) -> Unit,
     onRows: (Int) -> Unit,
     onColumns: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        PicassoFilterChip(
-            selected = visible,
-            onClick = onToggle,
-            label = "${stringResource(R.string.grid)}  $rows × $columns",
-        )
-        if (visible) {
+        PicassoSectionLabel(stringResource(R.string.guides).uppercase())
+        Row(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PicassoFilterChip(
+                selected = !visible,
+                onClick = { if (visible) onToggle() },
+                label = stringResource(R.string.guide_off),
+            )
+            GuideChip(app.picasso.tracer.domain.model.GuideType.GRID, R.string.guide_grid, visible, type, onType)
+            GuideChip(app.picasso.tracer.domain.model.GuideType.THIRDS, R.string.guide_thirds, visible, type, onType)
+            GuideChip(app.picasso.tracer.domain.model.GuideType.GOLDEN, R.string.guide_golden, visible, type, onType)
+            GuideChip(app.picasso.tracer.domain.model.GuideType.DIAGONAL, R.string.guide_diagonal, visible, type, onType)
+        }
+        if (visible && type == app.picasso.tracer.domain.model.GuideType.GRID) {
             Column(modifier = Modifier.padding(top = 4.dp)) {
                 Stepper(
                     label = stringResource(R.string.grid_rows),
@@ -93,6 +107,21 @@ fun GridBar(
             }
         }
     }
+}
+
+@Composable
+private fun GuideChip(
+    guide: app.picasso.tracer.domain.model.GuideType,
+    labelRes: Int,
+    visible: Boolean,
+    selected: app.picasso.tracer.domain.model.GuideType,
+    onType: (app.picasso.tracer.domain.model.GuideType) -> Unit,
+) {
+    PicassoFilterChip(
+        selected = visible && selected == guide,
+        onClick = { onType(guide) },
+        label = stringResource(labelRes),
+    )
 }
 
 @Composable

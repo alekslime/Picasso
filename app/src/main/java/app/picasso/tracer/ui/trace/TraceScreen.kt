@@ -217,7 +217,7 @@ fun TraceScreen(
                 }
             }
             if (state.gridVisible) {
-                ProportionGrid(rows = state.gridRows, columns = state.gridCols)
+                ProportionGrid(type = state.guideType, rows = state.gridRows, columns = state.gridCols)
             }
 
             // Figma viewfinder dressing: focus ring + marks over the camera area.
@@ -348,9 +348,11 @@ fun TraceScreen(
                         )
                         GridBar(
                             visible = state.gridVisible,
+                            type = state.guideType,
                             rows = state.gridRows,
                             columns = state.gridCols,
                             onToggle = viewModel::toggleGrid,
+                            onType = viewModel::setGuideType,
                             onRows = viewModel::setGridRows,
                             onColumns = viewModel::setGridCols,
                         )
@@ -392,8 +394,12 @@ fun TraceScreen(
                         torchOn = cameraState.torchOn,
                         filter = state.filter,
                         gridVisible = state.gridVisible,
-                        gridRows = state.gridRows,
-                        gridCols = state.gridCols,
+                        gridLabel = if (state.gridVisible) {
+                            when (state.guideType) {
+                                app.picasso.tracer.domain.model.GuideType.GRID -> "${state.gridRows}×${state.gridCols}"
+                                else -> state.guideType.name
+                            }
+                        } else stringResource(R.string.guide_off).uppercase(),
                         recording = cameraState.recording,
                         onOpacity = viewModel::setOpacity,
                         onToggleLock = viewModel::toggleLock,

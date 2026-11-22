@@ -11,6 +11,7 @@ import app.picasso.tracer.camera.OverlayAnchor
 import app.picasso.tracer.data.ImageStore
 import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
+import app.picasso.tracer.domain.model.GuideType
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.domain.repository.ProjectRepository
 import app.picasso.tracer.domain.repository.SettingsRepository
@@ -46,6 +47,7 @@ data class TraceUiState(
     val gridVisible: Boolean = false,
     val gridRows: Int = 3,
     val gridCols: Int = 3,
+    val guideType: GuideType = GuideType.GRID,
     val strobeOn: Boolean = false,
     val strobeHz: Float = 1f,
     val strobePhase: Boolean = true,
@@ -105,6 +107,7 @@ class TraceViewModel @Inject constructor(
                         gridVisible = project.gridVisible,
                         gridRows = project.gridRows,
                         gridCols = project.gridCols,
+                        guideType = project.guideType,
                     )
                 }
                 if (project.filter.needsBitmap()) applyBitmapFilter(project)
@@ -163,6 +166,7 @@ class TraceViewModel @Inject constructor(
                     gridVisible = state.gridVisible,
                     gridRows = state.gridRows,
                     gridCols = state.gridCols,
+                    guideType = state.guideType,
                 ),
             )
         }
@@ -274,6 +278,11 @@ class TraceViewModel @Inject constructor(
 
     fun toggleGrid() {
         _uiState.update { it.copy(gridVisible = !it.gridVisible) }
+    }
+
+    /** Selecting a guide turns guides on; Off is expressed via toggleGrid/visible. */
+    fun setGuideType(type: GuideType) {
+        _uiState.update { it.copy(guideType = type, gridVisible = true) }
     }
 
     fun setGridRows(rows: Int) {
