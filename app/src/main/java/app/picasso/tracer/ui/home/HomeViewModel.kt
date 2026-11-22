@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.picasso.tracer.R
 import app.picasso.tracer.data.ImageStore
+import app.picasso.tracer.data.Sample
+import app.picasso.tracer.data.Samples
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,9 +14,23 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
+
+enum class LibrarySort {
+    NEWEST,
+    OLDEST,
+    NAME,
+}
+
+/** A bundled starter image plus its on-disk copy for display. */
+data class SampleItem(
+    val sample: Sample,
+    val file: File,
+)
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -31,6 +47,45 @@ class HomeViewModel @Inject constructor(
     private val _errorRes = MutableStateFlow<Int?>(null)
     val errorRes: StateFlow<Int?> = _errorRes.asStateFlow()
 
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
+
+    private val _sort = MutableStateFlow(LibrarySort.NEWEST)
+    val sort: StateFlow<LibrarySort> = _sort.asStateFlow()
+
+    private val _favoritesOnly = MutableStateFlow(false)
+    val favoritesOnly: StateFlow<Boolean> = _favoritesOnly.asStateFlow()
+
+    /** Library view: filtered by search + favorites, then sorted. */
+    val library: StateFlow<List<Project>> = combine(
+        projects,
+        _query,
+        _sort,
+        _favoritesOnly,
+    ) { all, query, sort, favoritesOnly ->
+        var list = all
+        if (favoritesOnly) list = list.filter { it.favorite }
+        if (query.isNotBlank()) {
+            list = list.filter { it.name.contains(query, ignoreCase = true) }
+        }
+        when (sort) {
+            LibrarySort.NEWEST -> list.sortedByDescending { it.updatedAt }
+            LibrarySort.OLDEST -> list.sortedBy { it.updatedAt }
+            LibrarySort.NAME -> list.sortedBy { it.name.lowercase() }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _samples = MutableStateFlow<List<SampleItem>>(emptyList())
+    val samples: StateFlow<List<SampleItem>> = _samples.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _samples.value = Samples.all.map { sample ->
+                SampleItem(sample, imageStore.fileForSample(sample.assetPath))
+            }
+        }
+    }
+
     /** Copies [source] into the app and opens a new project for it. */
     fun createProject(source: Uri, defaultName: String, onCreated: (Long) -> Unit) {
         if (_creating.value) return
@@ -46,6 +101,49 @@ class HomeViewModel @Inject constructor(
                 _creating.value = false
             }
         }
+    }
+
+    /** Copies a bundled [sample] into the app and opens a new project for it. */
+    fun createSample(sample: Sample, displayName: String, onCreated: (Long) -> Unit) {
+        if (_creating.value) return
+        _creating.value = true
+        viewModelScope.launch {
+            try {
+                val path = imageStore.persistAsset(sample.assetPath)
+                val id = repository.createProject(path, displayName)
+                onCreated(id)
+            } catch (_: Exception) {
+                _errorRes.value = R.string.error_loading_image
+            } finally {
+                _creating.value = false
+            }
+        }
+    }
+
+    fun toggleFavorite(project: Project) {
+        viewModelScope.launch {
+            repository.setFavorite(project.id, !project.favorite)
+        }
+    }
+
+    fun renameProject(project: Project, name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty() || trimmed == project.name) return
+        viewModelScope.launch {
+            repository.updateProject(project.copy(name = trimmed))
+        }
+    }
+
+    fun setQuery(query: String) {
+        _query.value = query
+    }
+
+    fun setSort(sort: LibrarySort) {
+        _sort.value = sort
+    }
+
+    fun setFavoritesOnly(favoritesOnly: Boolean) {
+        _favoritesOnly.value = favoritesOnly
     }
 
     fun deleteProject(project: Project) {
