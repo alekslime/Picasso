@@ -13,5 +13,8 @@ interface ProjectRepository {
 
     suspend fun updateProject(project: Project)
 
+    /** Flips the favorite flag without touching updatedAt, so list order is kept. */
+    suspend fun setFavorite(id: Long, favorite: Boolean)
+
     suspend fun deleteProject(id: Long)
 }
