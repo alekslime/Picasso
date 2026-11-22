@@ -18,6 +18,7 @@ import app.picasso.tracer.domain.model.GuideType
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.domain.repository.ProjectRepository
 import app.picasso.tracer.domain.repository.SettingsRepository
+import app.picasso.tracer.filters.BeforeAfter
 import app.picasso.tracer.filters.FilterProcessor
 import app.picasso.tracer.filters.GpuFilters
 import app.picasso.tracer.filters.StepGenerator
@@ -70,6 +71,7 @@ data class TraceUiState(
     val timelapseActive: Boolean = false,
     val timelapseIntervalSec: Int = 10,
     val timelapseCount: Int = 0,
+    val beforeAfterSaving: Boolean = false,
 )
 
 @HiltViewModel
@@ -258,6 +260,40 @@ class TraceViewModel @Inject constructor(
         }
         _uiState.update { it.copy(filter = filter, filterLoading = true, stepIndex = null) }
         applyBitmapFilter(project)
+    }
+
+    /**
+     * Before/after: photo of the drawing (after) composited side-by-side
+     * with the reference (before) and saved to the gallery. One thin divider.
+     */
+    fun captureBeforeAfter() {
+        val project = _uiState.value.project ?: return
+        if (_uiState.value.beforeAfterSaving) return
+        _uiState.update { it.copy(beforeAfterSaving = true) }
+        cameraManager.captureStillToFile(
+            onResult = { file ->
+                viewModelScope.launch {
+                    val saved = runCatching {
+                        val before = imageStore.loadBitmap(project.imagePath, BeforeAfter.PANEL_HEIGHT)
+                            ?: error("Missing reference")
+                        val after = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                            ?: error("Missing capture")
+                        val composed = BeforeAfter.sideBySide(before, after)
+                        imageStore.saveToGallery(composed, "before-after-${System.currentTimeMillis()}.jpg")
+                    }.getOrDefault(false)
+                    runCatching { file.delete() }
+                    _uiState.update {
+                        it.copy(
+                            beforeAfterSaving = false,
+                            noticeRes = if (saved) R.string.before_after_saved else R.string.recording_failed,
+                        )
+                    }
+                }
+            },
+            onError = {
+                _uiState.update { it.copy(beforeAfterSaving = false, noticeRes = R.string.recording_failed) }
+            },
+        )
     }
 
     fun toggleSteps() {

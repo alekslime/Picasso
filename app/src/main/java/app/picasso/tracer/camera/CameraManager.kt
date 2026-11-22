@@ -143,6 +143,27 @@ class CameraManager @Inject constructor(
         }
     }
 
+    /** One still to a private temp file (before/after compositing needs the pixels). */
+    fun captureStillToFile(onResult: (java.io.File) -> Unit, onError: () -> Unit) {
+        val file = java.io.File(
+            java.io.File(context.cacheDir, "captures").apply { mkdirs() },
+            "capture-${System.currentTimeMillis()}.jpg",
+        )
+        val output = ImageCapture.OutputFileOptions.Builder(file).build()
+        try {
+            imageCapture.takePicture(
+                output,
+                ContextCompat.getMainExecutor(context),
+                object : ImageCapture.OnImageSavedCallback {
+                    override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) = onResult(file)
+                    override fun onError(exception: ImageCaptureException) = onError()
+                },
+            )
+        } catch (_: Exception) {
+            onError()
+        }
+    }
+
     fun stopRecording() {
         runCatching { recording?.stop() }
         recording = null

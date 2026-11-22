@@ -75,6 +75,8 @@
     <string name="steps">Steps</string>
     <string name="record">Record</string>
     <string name="timelapse">Timelapse</string>
+    <string name="before_after">Before / After</string>
+    <string name="before_after_saved">Before/after saved to gallery</string>
     <string name="timelapse_frames">%1$d frames</string>
     <string name="timelapse_saved">Timelapse frame saved</string>
     <string name="stop_recording">Stop</string>

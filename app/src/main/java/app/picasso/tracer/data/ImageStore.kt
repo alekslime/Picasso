@@ -80,6 +80,25 @@ class ImageStore @Inject constructor(
             BitmapFactory.decodeFile(path, opts)
         }
 
+    /** Saves a composed bitmap to Pictures/Picasso in the gallery. */
+    suspend fun saveToGallery(bitmap: Bitmap, displayName: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, displayName)
+                put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Picasso")
+                }
+            }
+            val uri = context.contentResolver.insert(
+                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values,
+            ) ?: return@runCatching false
+            context.contentResolver.openOutputStream(uri)?.use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+            } ?: false
+        }.getOrDefault(false)
+    }
+
     fun fileFor(path: String): File = File(path)
 
     suspend fun delete(path: String) = withContext(Dispatchers.IO) {

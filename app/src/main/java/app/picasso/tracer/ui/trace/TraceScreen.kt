@@ -382,6 +382,10 @@ fun TraceScreen(
                             recording = cameraState.recording,
                             onToggle = ::onRecordToggle,
                         )
+                        BeforeAfterBar(
+                            saving = state.beforeAfterSaving,
+                            onClick = viewModel::captureBeforeAfter,
+                        )
                     }
                 },
                     modifier = Modifier.fillMaxWidth(),
