@@ -30,6 +30,30 @@ class ImageStore @Inject constructor(
     suspend fun persist(source: Uri): String = withContext(Dispatchers.IO) {
         val bytes = context.contentResolver.openInputStream(source)?.use { it.readBytes() }
             ?: throw IOException("Cannot open image")
+        persistBytes(bytes)
+    }
+
+    /** Persists a bundled sample from assets and returns the absolute path of the copy. */
+    suspend fun persistAsset(assetPath: String): String = withContext(Dispatchers.IO) {
+        val bytes = context.assets.open(assetPath).use { it.readBytes() }
+        persistBytes(bytes)
+    }
+
+    /**
+     * Copies a bundled sample into private storage for display, once. Returns the file
+     * so thumbnails load through the same path as project images.
+     */
+    suspend fun fileForSample(assetPath: String): File = withContext(Dispatchers.IO) {
+        val dest = File(File(context.filesDir, "samples").apply { mkdirs() }, File(assetPath).name)
+        if (!dest.exists()) {
+            context.assets.open(assetPath).use { input ->
+                FileOutputStream(dest).use { output -> input.copyTo(output) }
+            }
+        }
+        dest
+    }
+
+    private fun persistBytes(bytes: ByteArray): String {
         var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
             ?: throw IOException("Cannot decode image")
         bitmap = applyExifOrientation(bitmap, bytes)
@@ -40,7 +64,7 @@ class ImageStore @Inject constructor(
                 throw IOException("Cannot save image")
             }
         }
-        dest.absolutePath
+        return dest.absolutePath
     }
 
     /** Decodes the stored image, downsampled so the longest side fits [maxDimension]. */
