@@ -13,6 +13,7 @@ import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.domain.repository.ProjectRepository
+import app.picasso.tracer.domain.repository.SettingsRepository
 import app.picasso.tracer.filters.FilterProcessor
 import app.picasso.tracer.filters.GpuFilters
 import app.picasso.tracer.filters.StepGenerator
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -67,6 +69,7 @@ class TraceViewModel @Inject constructor(
     private val imageStore: ImageStore,
     private val filters: FilterProcessor,
     private val stepGenerator: StepGenerator,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
 
     private val projectId: Long = savedStateHandle.get<Long>("projectId") ?: -1L
@@ -191,7 +194,10 @@ class TraceViewModel @Inject constructor(
     }
 
     fun resetView() {
-        _uiState.update { it.copy(transform = OverlayTransform.initial(), opacity = 0.5f) }
+        viewModelScope.launch {
+            val opacity = settings.settings.first().defaultOpacity
+            _uiState.update { it.copy(transform = OverlayTransform.initial(), opacity = opacity) }
+        }
     }
 
     fun setFilter(filter: TraceFilter) {
