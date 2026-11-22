@@ -11,7 +11,8 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 fun PicassoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    // Off by default: wallpaper-based colors would hide the Picasso green identity.
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val colors = when {
