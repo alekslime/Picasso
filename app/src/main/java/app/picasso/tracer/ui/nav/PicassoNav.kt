@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,8 +23,16 @@ object Routes {
 }
 
 @Composable
-fun PicassoNav() {
+fun PicassoNav(
+    openProjectId: Long? = null,
+    onProjectConsumed: () -> Unit = {},
+) {
     val nav = rememberNavController()
+    LaunchedEffect(openProjectId) {
+        val id = openProjectId ?: return@LaunchedEffect
+        nav.navigate(Routes.trace(id))
+        onProjectConsumed()
+    }
     NavHost(
         navController = nav,
         startDestination = Routes.HOME,

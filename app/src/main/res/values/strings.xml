@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Picasso</string>
+    <string name="widget_continue">Continue →</string>
+    <string name="widget_no_project">No tracings yet</string>
+    <string name="widget_description">Continue your last tracing</string>
     <string name="tagline">Trace anything, freehand</string>
 
     <!-- Home -->
