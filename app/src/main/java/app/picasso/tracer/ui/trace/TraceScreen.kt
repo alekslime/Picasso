@@ -371,6 +371,13 @@ fun TraceScreen(
                             onPrevious = viewModel::previousStep,
                             onNext = viewModel::nextStep,
                         )
+                        TimelapseBar(
+                            active = state.timelapseActive,
+                            intervalSec = state.timelapseIntervalSec,
+                            frameCount = state.timelapseCount,
+                            onToggle = viewModel::toggleTimelapse,
+                            onInterval = viewModel::setTimelapseInterval,
+                        )
                         RecordBar(
                             recording = cameraState.recording,
                             onToggle = ::onRecordToggle,

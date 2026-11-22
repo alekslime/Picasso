@@ -66,6 +66,10 @@ data class TraceUiState(
     // AR anchor mode is session-only (reference pose dies with the session).
     val overlayMode: OverlayMode = OverlayMode.CLASSIC,
     val anchorDrift: AnchorDrift = AnchorDrift(),
+    // Timelapse is session-only; frames land in Pictures/Picasso.
+    val timelapseActive: Boolean = false,
+    val timelapseIntervalSec: Int = 10,
+    val timelapseCount: Int = 0,
 )
 
 @HiltViewModel
@@ -90,6 +94,7 @@ class TraceViewModel @Inject constructor(
     private var stepsJob: Job? = null
     private var tickerJob: Job? = null
     private val arAnchor = ArAnchor()
+    private var timelapseJob: Job? = null
 
     val cameraState = cameraManager.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), cameraManager.state.value)
@@ -399,7 +404,40 @@ class TraceViewModel @Inject constructor(
         _uiState.update { it.copy(noticeRes = null) }
     }
 
+    fun toggleTimelapse() {
+        if (_uiState.value.timelapseActive) stopTimelapse() else startTimelapse()
+    }
+
+    fun setTimelapseInterval(seconds: Int) {
+        _uiState.update { it.copy(timelapseIntervalSec = seconds.coerceIn(2, 120)) }
+        if (_uiState.value.timelapseActive) {
+            stopTimelapse()
+            startTimelapse()
+        }
+    }
+
+    private fun startTimelapse() {
+        _uiState.update { it.copy(timelapseActive = true) }
+        timelapseJob?.cancel()
+        timelapseJob = viewModelScope.launch {
+            while (true) {
+                cameraManager.captureStill(
+                    onSaved = { _uiState.update { s -> s.copy(timelapseCount = s.timelapseCount + 1) } },
+                    onError = { _uiState.update { s -> s.copy(noticeRes = R.string.recording_failed) } },
+                )
+                delay(_uiState.value.timelapseIntervalSec * 1_000L)
+            }
+        }
+    }
+
+    private fun stopTimelapse() {
+        timelapseJob?.cancel()
+        timelapseJob = null
+        _uiState.update { it.copy(timelapseActive = false) }
+    }
+
     override fun onCleared() {
+        timelapseJob?.cancel()
         motionTracker.stop()
         cameraManager.unbind()
         super.onCleared()

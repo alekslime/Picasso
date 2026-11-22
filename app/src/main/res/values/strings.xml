@@ -74,6 +74,9 @@
     <string name="strobe_speed">Flash speed</string>
     <string name="steps">Steps</string>
     <string name="record">Record</string>
+    <string name="timelapse">Timelapse</string>
+    <string name="timelapse_frames">%1$d frames</string>
+    <string name="timelapse_saved">Timelapse frame saved</string>
     <string name="stop_recording">Stop</string>
     <string name="recording_saved">Recording saved to gallery</string>
     <string name="recording_failed">Recording failed</string>
