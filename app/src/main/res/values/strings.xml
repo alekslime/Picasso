@@ -67,6 +67,8 @@
     <string name="recording_failed">Recording failed</string>
     <string name="back">Back</string>
     <string name="reset_view">Reset view</string>
+    <string name="collapse_panel">Hide panel</string>
+    <string name="expand_panel">Show panel</string>
 
     <!-- Light -->
     <string name="light">Light</string>
