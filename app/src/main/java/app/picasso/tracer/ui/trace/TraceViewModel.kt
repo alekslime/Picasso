@@ -14,6 +14,7 @@ import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.domain.repository.ProjectRepository
 import app.picasso.tracer.filters.FilterProcessor
+import app.picasso.tracer.filters.GpuFilters
 import app.picasso.tracer.filters.StepGenerator
 import app.picasso.tracer.filters.StepLayer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -49,6 +50,11 @@ data class TraceUiState(
     val steps: List<StepLayer> = emptyList(),
     val stepIndex: Int? = null,
     val stepsLoading: Boolean = false,
+    // Session-only: brightness/contrast compensate for ambient light, which changes
+    // every session, so they are deliberately not persisted with the project.
+    val brightness: Float = 0f,
+    val contrast: Float = 1f,
+    val lightExpanded: Boolean = false,
     val noticeRes: Int? = null,
 )
 
@@ -71,9 +77,14 @@ class TraceViewModel @Inject constructor(
     private var filterJob: Job? = null
     private var strobeJob: Job? = null
     private var stepsJob: Job? = null
+    private var tickerJob: Job? = null
 
     val cameraState = cameraManager.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), cameraManager.state.value)
+
+    // Separate from uiState on purpose: ticking every second must not trip auto-save.
+    private val _recordingElapsedSec = MutableStateFlow(0L)
+    val recordingElapsedSec: StateFlow<Long> = _recordingElapsedSec.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -97,6 +108,28 @@ class TraceViewModel @Inject constructor(
             }
         }
         startAutoSave()
+        viewModelScope.launch {
+            cameraManager.state.collect { state ->
+                if (state.recording) startTicker() else stopTicker()
+            }
+        }
+    }
+
+    private fun startTicker() {
+        if (tickerJob != null) return
+        _recordingElapsedSec.value = 0
+        tickerJob = viewModelScope.launch {
+            while (true) {
+                delay(1_000)
+                _recordingElapsedSec.update { it + 1 }
+            }
+        }
+    }
+
+    private fun stopTicker() {
+        tickerJob?.cancel()
+        tickerJob = null
+        _recordingElapsedSec.value = 0
     }
 
     // Persists overlay state 600ms after the last change. One-way: saving never
@@ -269,6 +302,24 @@ class TraceViewModel @Inject constructor(
 
     fun setTorch(on: Boolean) {
         cameraManager.setTorch(on)
+    }
+
+    fun toggleLight() {
+        _uiState.update { it.copy(lightExpanded = !it.lightExpanded) }
+    }
+
+    fun setBrightness(brightness: Float) {
+        _uiState.update { it.copy(brightness = brightness.coerceIn(-1f, 1f)) }
+    }
+
+    fun setContrast(contrast: Float) {
+        _uiState.update {
+            it.copy(contrast = contrast.coerceIn(GpuFilters.MIN_CONTRAST, GpuFilters.MAX_CONTRAST))
+        }
+    }
+
+    fun resetLight() {
+        _uiState.update { it.copy(brightness = 0f, contrast = 1f) }
     }
 
     fun startRecording(withAudio: Boolean) {

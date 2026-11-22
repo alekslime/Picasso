@@ -53,6 +53,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.picasso.tracer.MainActivity
 import app.picasso.tracer.R
+import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.filters.GpuFilters
 import app.picasso.tracer.ui.permission.CameraPermissionScreen
 import java.io.File
@@ -110,6 +111,7 @@ fun TraceScreen(
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraState by viewModel.cameraState.collectAsState()
+    val recordingElapsedSec by viewModel.recordingElapsedSec.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     var showAudioDialog by remember { mutableStateOf(false) }
 
@@ -180,8 +182,14 @@ fun TraceScreen(
                     transform = state.transform,
                     opacity = state.opacity,
                     locked = state.locked,
-                    colorFilter = if (stepActive) null
-                    else remember(state.filter) { GpuFilters.colorFilterFor(state.filter) },
+                    // Light tuning applies on top of everything, including step layers.
+                    colorFilter = remember(state.filter, state.brightness, state.contrast, stepActive) {
+                        GpuFilters.colorFilterFor(
+                            if (stepActive) TraceFilter.ORIGINAL else state.filter,
+                            state.brightness,
+                            state.contrast,
+                        )
+                    },
                     onGesture = viewModel::onOverlayGesture,
                 )
             }
@@ -214,6 +222,17 @@ fun TraceScreen(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
             }
 
+            if (cameraState.recording) {
+                RecordingPill(
+                    elapsedSec = recordingElapsedSec,
+                    onStop = viewModel::stopRecording,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(top = 8.dp),
+                )
+            }
+
             SnackbarHost(
                 snackbar,
                 modifier = Modifier
@@ -238,6 +257,15 @@ fun TraceScreen(
                         modifier = Modifier.padding(top = 4.dp),
                     ) {
                         FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
+                        LightBar(
+                            expanded = state.lightExpanded,
+                            brightness = state.brightness,
+                            contrast = state.contrast,
+                            onToggle = viewModel::toggleLight,
+                            onBrightness = viewModel::setBrightness,
+                            onContrast = viewModel::setContrast,
+                            onReset = viewModel::resetLight,
+                        )
                         GridBar(
                             visible = state.gridVisible,
                             rows = state.gridRows,
