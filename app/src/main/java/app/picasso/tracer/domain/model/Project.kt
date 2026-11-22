@@ -13,5 +13,6 @@ data class Project(
     val gridVisible: Boolean = false,
     val gridRows: Int = 3,
     val gridCols: Int = 3,
+    val guideType: GuideType = GuideType.GRID,
     val favorite: Boolean = false,
 )

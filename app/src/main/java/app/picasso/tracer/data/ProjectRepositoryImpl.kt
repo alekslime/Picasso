@@ -5,6 +5,7 @@ import app.picasso.tracer.data.local.ProjectEntity
 import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.TraceFilter
+import app.picasso.tracer.domain.model.GuideType
 import app.picasso.tracer.domain.repository.ProjectRepository
 import app.picasso.tracer.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -73,6 +74,7 @@ fun ProjectEntity.toDomain(): Project = Project(
     gridVisible = gridVisible,
     gridRows = gridRows,
     gridCols = gridCols,
+    guideType = runCatching { GuideType.valueOf(guideType) }.getOrDefault(GuideType.GRID),
     favorite = favorite,
 )
 
@@ -93,5 +95,6 @@ fun Project.toEntity(updatedAt: Long): ProjectEntity = ProjectEntity(
     gridVisible = gridVisible,
     gridRows = gridRows,
     gridCols = gridCols,
+    guideType = guideType.name,
     favorite = favorite,
 )
