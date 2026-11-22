@@ -55,6 +55,10 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+        // Monetization libs (billing, identity) ship newer Kotlin metadata than
+        // this project's Kotlin 2.0 toolchain. Their APIs are stable plain
+        // classes, so reading them is safe; revisit on the next Kotlin bump.
+        freeCompilerArgs += "-Xskip-metadata-version-check"
     }
     buildFeatures {
         compose = true
@@ -62,6 +66,20 @@ android {
 }
 
 dependencies {
+    // Pin stdlib to the project's Kotlin on EVERY configuration (including the
+    // annotation-processor classpaths): monetization libs pull newer stdlibs
+    // whose metadata Hilt's processor cannot read. kotlinc itself tolerates
+    // the libs via -Xskip-metadata-version-check.
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin" &&
+                requested.name.startsWith("kotlin-stdlib")
+            ) {
+                useVersion("2.0.21")
+                because("Hilt processor maxes out at Kotlin 2.1 metadata")
+            }
+        }
+    }
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime)
@@ -97,6 +115,16 @@ dependencies {
     implementation(libs.datastore.preferences)
 
     implementation(libs.arcore.core)
+
+    implementation(libs.billing.ktx)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.play.services.ads)
+    implementation(libs.user.messaging.platform)
+    // Full Guava for ListenableFuture: monetization libs pull the empty
+    // listenablefuture stub, which starves CameraX of the class.
+    implementation(libs.guava.android)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
