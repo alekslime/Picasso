@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FlashlightOff
 import androidx.compose.material.icons.filled.FlashlightOn
 import androidx.compose.material.icons.filled.GridOn
+import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Refresh
@@ -60,6 +61,8 @@ fun CleanTraceDeck(
     gridVisible: Boolean,
     gridLabel: String,
     recording: Boolean,
+    anchorActive: Boolean,
+    onToggleAnchor: () -> Unit,
     onOpacity: (Float) -> Unit,
     onToggleLock: () -> Unit,
     onFlipH: () -> Unit,
@@ -145,6 +148,13 @@ fun CleanTraceDeck(
                 active = torchOn,
                 size = 44,
                 onClick = onToggleTorch,
+            )
+            DeckButton(
+                icon = Icons.Default.CenterFocusStrong,
+                description = stringResource(R.string.ar_anchor),
+                active = anchorActive,
+                size = 44,
+                onClick = onToggleAnchor,
             )
         }
 

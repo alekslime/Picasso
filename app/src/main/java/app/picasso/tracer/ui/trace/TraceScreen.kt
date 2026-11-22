@@ -205,7 +205,7 @@ fun TraceScreen(
                 Crossfade(targetState = overlayContent to effectiveFilter, label = "overlay") { (content, filter) ->
                     OverlayImage(
                         content = content,
-                        transform = state.transform,
+                        transform = viewModel.effectiveTransform(state),
                         opacity = state.opacity,
                         locked = state.locked,
                         // Light tuning applies on top of everything, including step layers.
@@ -336,6 +336,7 @@ fun TraceScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.padding(top = 4.dp),
                     ) {
+                        AnchorBar(mode = state.overlayMode, onToggle = viewModel::toggleAnchorMode)
                         FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
                         LightBar(
                             expanded = state.lightExpanded,
@@ -401,6 +402,8 @@ fun TraceScreen(
                             }
                         } else stringResource(R.string.guide_off).uppercase(),
                         recording = cameraState.recording,
+                        anchorActive = state.overlayMode == app.picasso.tracer.camera.OverlayMode.AR,
+                        onToggleAnchor = viewModel::toggleAnchorMode,
                         onOpacity = viewModel::setOpacity,
                         onToggleLock = viewModel::toggleLock,
                         onFlipH = viewModel::flipHorizontal,

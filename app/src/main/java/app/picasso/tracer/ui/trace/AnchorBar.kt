@@ -1,0 +1,49 @@
+package app.picasso.tracer.ui.trace
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CenterFocusStrong
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import app.picasso.tracer.R
+import app.picasso.tracer.camera.OverlayMode
+import app.picasso.tracer.ui.theme.PicassoPaperMuted
+
+/** Classic vs AR anchor mode. AR keeps the overlay on the paper as the phone moves. */
+@Composable
+fun AnchorBar(
+    mode: OverlayMode,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val ar = mode == OverlayMode.AR
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PicassoFilterChip(
+                selected = !ar,
+                onClick = { if (ar) onToggle() },
+                label = stringResource(R.string.anchor_classic),
+            )
+            PicassoFilterChip(
+                selected = ar,
+                onClick = { if (!ar) onToggle() },
+                label = stringResource(R.string.ar_anchor),
+                leadingIcon = { Icon(Icons.Default.CenterFocusStrong, contentDescription = null) },
+            )
+        }
+        if (ar) {
+            Text(
+                stringResource(R.string.ar_anchor_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = PicassoPaperMuted,
+            )
+        }
+    }
+}

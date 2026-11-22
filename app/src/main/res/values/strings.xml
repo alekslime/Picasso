@@ -6,6 +6,10 @@
     <!-- Home -->
     <string name="home_title">Picasso</string>
     <string name="trace_readout">TRACE</string>
+    <string name="ar_anchor">AR anchor</string>
+    <string name="ar_anchor_hint">Overlay stays on the paper as you move. Beta — move slowly.</string>
+    <string name="ar_unavailable">AR anchor needs a motion sensor this device does not have</string>
+    <string name="anchor_classic">Classic</string>
     <string name="pick_image">Pick image</string>
     <string name="take_photo">Take photo</string>
     <string name="recent_projects">Recent projects</string>

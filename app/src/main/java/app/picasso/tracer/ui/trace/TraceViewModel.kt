@@ -7,7 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.picasso.tracer.R
 import app.picasso.tracer.camera.CameraManager
-import app.picasso.tracer.camera.OverlayAnchor
+import app.picasso.tracer.camera.AnchorDrift
+import app.picasso.tracer.camera.ArAnchor
+import app.picasso.tracer.camera.MotionTracker
+import app.picasso.tracer.camera.OverlayMode
 import app.picasso.tracer.data.ImageStore
 import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
@@ -60,6 +63,9 @@ data class TraceUiState(
     val contrast: Float = 1f,
     val lightExpanded: Boolean = false,
     val noticeRes: Int? = null,
+    // AR anchor mode is session-only (reference pose dies with the session).
+    val overlayMode: OverlayMode = OverlayMode.CLASSIC,
+    val anchorDrift: AnchorDrift = AnchorDrift(),
 )
 
 @HiltViewModel
@@ -67,7 +73,7 @@ class TraceViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: ProjectRepository,
     val cameraManager: CameraManager,
-    private val anchor: OverlayAnchor,
+    private val motionTracker: MotionTracker,
     private val imageStore: ImageStore,
     private val filters: FilterProcessor,
     private val stepGenerator: StepGenerator,
@@ -83,6 +89,7 @@ class TraceViewModel @Inject constructor(
     private var strobeJob: Job? = null
     private var stepsJob: Job? = null
     private var tickerJob: Job? = null
+    private val arAnchor = ArAnchor()
 
     val cameraState = cameraManager.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), cameraManager.state.value)
@@ -172,12 +179,12 @@ class TraceViewModel @Inject constructor(
         }
     }
 
-    /** One gesture frame from the overlay; ignored while locked. Classic anchor resolves as-is. */
+    /** One gesture frame from the overlay; ignored while locked. Drift is display-only. */
     fun onOverlayGesture(pan: Offset, zoom: Float, rotation: Float) {
         _uiState.update { state ->
             if (state.locked) return@update state
             val next = state.transform.applyGesture(pan.x, pan.y, zoom, rotation)
-            state.copy(transform = anchor.resolve(next))
+            state.copy(transform = next)
         }
     }
 
@@ -187,6 +194,36 @@ class TraceViewModel @Inject constructor(
 
     fun toggleLock() {
         _uiState.update { it.copy(locked = !it.locked) }
+    }
+
+    /** Display transform: user base plus live AR drift when anchored. */
+    fun effectiveTransform(state: TraceUiState): OverlayTransform =
+        if (state.overlayMode == OverlayMode.AR) arAnchor.resolve(state.transform) else state.transform
+
+    fun toggleAnchorMode() {
+        if (_uiState.value.overlayMode == OverlayMode.AR) {
+            setAnchorMode(OverlayMode.CLASSIC)
+        } else {
+            setAnchorMode(OverlayMode.AR)
+        }
+    }
+
+    fun setAnchorMode(mode: OverlayMode) {
+        if (mode == OverlayMode.AR) {
+            if (!motionTracker.available) {
+                _uiState.update { it.copy(noticeRes = R.string.ar_unavailable) }
+                return
+            }
+            motionTracker.start { drift ->
+                arAnchor.update(drift)
+                _uiState.update { it.copy(anchorDrift = drift) }
+            }
+            _uiState.update { it.copy(overlayMode = OverlayMode.AR) }
+        } else {
+            motionTracker.stop()
+            arAnchor.reset()
+            _uiState.update { it.copy(overlayMode = OverlayMode.CLASSIC, anchorDrift = AnchorDrift()) }
+        }
     }
 
     fun flipHorizontal() {
@@ -363,6 +400,7 @@ class TraceViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        motionTracker.stop()
         cameraManager.unbind()
         super.onCleared()
     }
