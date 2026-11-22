@@ -11,13 +11,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
-// Figma spacing/radius: 4pt base, 12dp component radius, 24dp panel radius.
+// Figma spacing/radius: 4pt base, every rounded corner 20dp (circles stay circular).
 val PicassoShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(12.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(24.dp),
+    extraSmall = RoundedCornerShape(20.dp),
+    small = RoundedCornerShape(20.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(20.dp),
 )
 
 @Composable

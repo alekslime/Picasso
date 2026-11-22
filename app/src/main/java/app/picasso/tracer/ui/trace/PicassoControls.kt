@@ -1,6 +1,7 @@
 package app.picasso.tracer.ui.trace
 
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +43,7 @@ fun PicassoFilterChip(
             selectedLeadingIconColor = PicassoInk,
         ),
         border = null,
+        shape = RoundedCornerShape(20.dp),
         modifier = modifier.height(36.dp),
     )
 }

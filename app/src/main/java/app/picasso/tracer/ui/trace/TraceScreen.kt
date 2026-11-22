@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -131,7 +132,7 @@ fun TraceScreen(
     val recordingElapsedSec by viewModel.recordingElapsedSec.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     var showAudioDialog by remember { mutableStateOf(false) }
-    var panelVisible by remember { mutableStateOf(true) }
+    var panelVisible by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
 
     val noticeRes = state.noticeRes
@@ -218,6 +219,18 @@ fun TraceScreen(
             if (state.gridVisible) {
                 ProportionGrid(rows = state.gridRows, columns = state.gridCols)
             }
+
+            // Figma viewfinder dressing: focus ring + marks over the camera area.
+            FocusMarks(
+                opacity = state.opacity,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 72.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .height(340.dp),
+            )
 
             if (state.loading || state.filterLoading || state.stepsLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -365,16 +378,36 @@ fun TraceScreen(
                 )
             }
             if (!panelVisible) {
-                SmallFloatingActionButton(
-                    onClick = { panelVisible = true },
-                    containerColor = PicassoOchre,
-                    contentColor = PicassoInk,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .navigationBarsPadding()
-                        .padding(16.dp),
+                // Default state is the Figma hero deck, not the full panel.
+                AnimatedVisibility(
+                    visible = true,
+                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+                    modifier = Modifier.align(Alignment.BottomCenter),
                 ) {
-                    Icon(Icons.Default.Tune, contentDescription = stringResource(R.string.expand_panel))
+                    val filters = TraceFilter.entries
+                    CleanTraceDeck(
+                        opacity = state.opacity,
+                        locked = state.locked,
+                        torchOn = cameraState.torchOn,
+                        filter = state.filter,
+                        gridVisible = state.gridVisible,
+                        gridRows = state.gridRows,
+                        gridCols = state.gridCols,
+                        recording = cameraState.recording,
+                        onOpacity = viewModel::setOpacity,
+                        onToggleLock = viewModel::toggleLock,
+                        onFlipH = viewModel::flipHorizontal,
+                        onFlipV = viewModel::flipVertical,
+                        onToggleTorch = { viewModel.setTorch(!cameraState.torchOn) },
+                        onToggleGrid = viewModel::toggleGrid,
+                        onResetView = viewModel::resetView,
+                        onCycleFilter = {
+                            viewModel.setFilter(filters[(state.filter.ordinal + 1) % filters.size])
+                        },
+                        onRecord = ::onRecordToggle,
+                        onExpand = { panelVisible = true },
+                    )
                 }
             }
 
