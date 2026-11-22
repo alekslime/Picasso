@@ -11,30 +11,47 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -71,14 +88,23 @@ import java.util.Date
 @Composable
 fun HomeScreen(
     onOpenProject: (Long) -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val projects by viewModel.projects.collectAsState()
+    val library by viewModel.library.collectAsState()
+    val samples by viewModel.samples.collectAsState()
     val creating by viewModel.creating.collectAsState()
     val errorRes by viewModel.errorRes.collectAsState()
+    val query by viewModel.query.collectAsState()
+    val sort by viewModel.sort.collectAsState()
+    val favoritesOnly by viewModel.favoritesOnly.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val untitled = stringResource(R.string.project_untitled)
+
+    var deleting by remember { mutableStateOf<Project?>(null) }
+    var renaming by remember { mutableStateOf<Project?>(null) }
 
     val pickImage = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
@@ -101,6 +127,10 @@ fun HomeScreen(
         }
     }
 
+    // Resume only makes sense outside search/favorites filtering.
+    val browsing = query.isBlank() && !favoritesOnly
+    val resume = if (browsing) projects.firstOrNull() else null
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -114,6 +144,11 @@ fun HomeScreen(
                         )
                     }
                 },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
@@ -121,30 +156,22 @@ fun HomeScreen(
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        Column(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 20.dp),
+                .padding(padding),
         ) {
-            Spacer(Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Button(
-                    onClick = {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                NewTracingRow(
+                    creating = creating,
+                    onPick = {
                         pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
-                    modifier = Modifier.weight(1f),
-                    enabled = !creating,
-                ) {
-                    Icon(Icons.Default.PhotoLibrary, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.pick_image))
-                }
-                FilledTonalButton(
-                    onClick = {
+                    onCapture = {
                         val file = File(
                             File(context.cacheDir, "images").apply { mkdirs() },
                             "capture-${System.currentTimeMillis()}.jpg",
@@ -157,51 +184,389 @@ fun HomeScreen(
                         photoUri = uri
                         takePhoto.launch(uri)
                     },
-                    modifier = Modifier.weight(1f),
-                    enabled = !creating,
-                ) {
-                    Icon(Icons.Default.AddAPhoto, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.take_photo))
-                }
+                )
             }
             if (creating) {
-                Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 }
-            } else {
-                Spacer(Modifier.height(20.dp))
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    stringResource(R.string.recent_projects),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                if (projects.isNotEmpty()) {
+            resume?.let { project ->
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    ResumeCard(project = project, onOpen = { onOpenProject(project.id) })
+                }
+            }
+            if (samples.isNotEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
-                        "${projects.size}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        stringResource(R.string.try_sample),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 8.dp),
                     )
                 }
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(samples) { item ->
+                            SampleCard(
+                                item = item,
+                                enabled = !creating,
+                                onSelect = {
+                                    viewModel.createSample(
+                                        item.sample,
+                                        context.getString(item.sample.nameRes),
+                                        onOpenProject,
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
             }
-            Spacer(Modifier.height(12.dp))
-            if (projects.isEmpty() && !creating) {
-                EmptyProjects()
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    items(projects, key = { it.id }) { project ->
-                        ProjectRow(
-                            project = project,
-                            onOpen = { onOpenProject(project.id) },
-                            onDelete = { viewModel.deleteProject(project) },
+                    Text(
+                        stringResource(R.string.library),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    if (library.isNotEmpty()) {
+                        Text(
+                            "${library.size}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            if (projects.isNotEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = query,
+                            onValueChange = viewModel::setQuery,
+                            placeholder = { Text(stringResource(R.string.search_projects)) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            trailingIcon = {
+                                if (query.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.setQuery("") }) {
+                                        Icon(Icons.Default.Clear, contentDescription = null)
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.weight(1f),
+                        )
+                        SortMenu(sort = sort, onSort = viewModel::setSort)
+                    }
+                }
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = !favoritesOnly,
+                            onClick = { viewModel.setFavoritesOnly(false) },
+                            label = { Text(stringResource(R.string.filter_all)) },
+                        )
+                        FilterChip(
+                            selected = favoritesOnly,
+                            onClick = { viewModel.setFavoritesOnly(true) },
+                            label = { Text(stringResource(R.string.filter_favorites)) },
+                        )
+                    }
+                }
+            }
+            items(library, key = { it.id }) { project ->
+                ProjectCard(
+                    project = project,
+                    onOpen = { onOpenProject(project.id) },
+                    onToggleFavorite = { viewModel.toggleFavorite(project) },
+                    onRename = { renaming = project },
+                    onDelete = { deleting = project },
+                )
+            }
+            if (library.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    when {
+                        projects.isEmpty() -> EmptyProjects()
+                        favoritesOnly -> EmptyHint(stringResource(R.string.no_favorites))
+                        else -> EmptyHint(stringResource(R.string.no_matches))
+                    }
+                }
+            }
+        }
+    }
+
+    deleting?.let { project ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text(stringResource(R.string.delete_project)) },
+            text = { Text(stringResource(R.string.delete_project_confirm)) },
+            confirmButton = {
+                TextButton(onClick = { deleting = null; viewModel.deleteProject(project) }) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleting = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+    renaming?.let { project ->
+        RenameDialog(
+            project = project,
+            onDismiss = { renaming = null },
+            onConfirm = { name ->
+                renaming = null
+                viewModel.renameProject(project, name)
+            },
+        )
+    }
+}
+
+@Composable
+private fun NewTracingRow(
+    creating: Boolean,
+    onPick: () -> Unit,
+    onCapture: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Button(
+            onClick = onPick,
+            modifier = Modifier.weight(1f),
+            enabled = !creating,
+        ) {
+            Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.pick_image))
+        }
+        FilledTonalButton(
+            onClick = onCapture,
+            modifier = Modifier.weight(1f),
+            enabled = !creating,
+        ) {
+            Icon(Icons.Default.AddAPhoto, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.take_photo))
+        }
+    }
+}
+
+@Composable
+private fun ResumeCard(
+    project: Project,
+    onOpen: () -> Unit,
+) {
+    Card(
+        onClick = onOpen,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        ),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AsyncImage(
+                model = File(project.imagePath),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+            )
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.continue_last),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Text(
+                    project.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                        .format(Date(project.updatedAt)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SampleCard(
+    item: SampleItem,
+    enabled: Boolean,
+    onSelect: () -> Unit,
+) {
+    Card(
+        onClick = onSelect,
+        enabled = enabled,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        modifier = Modifier.width(140.dp),
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            AsyncImage(
+                model = item.file,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surface),
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(item.sample.nameRes),
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SortMenu(
+    sort: LibrarySort,
+    onSort: (LibrarySort) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Default.Sort, contentDescription = stringResource(R.string.sort))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            SortOption(
+                label = stringResource(R.string.sort_newest),
+                selected = sort == LibrarySort.NEWEST,
+                onClick = { expanded = false; onSort(LibrarySort.NEWEST) },
+            )
+            SortOption(
+                label = stringResource(R.string.sort_oldest),
+                selected = sort == LibrarySort.OLDEST,
+                onClick = { expanded = false; onSort(LibrarySort.OLDEST) },
+            )
+            SortOption(
+                label = stringResource(R.string.sort_name),
+                selected = sort == LibrarySort.NAME,
+                onClick = { expanded = false; onSort(LibrarySort.NAME) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SortOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        leadingIcon = if (selected) {
+            { Icon(Icons.Default.Check, contentDescription = null) }
+        } else null,
+        onClick = onClick,
+    )
+}
+
+@Composable
+private fun ProjectCard(
+    project: Project,
+    onOpen: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Card(
+        onClick = onOpen,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Column {
+            AsyncImage(
+                model = File(project.imagePath),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(4f / 3f),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        project.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                            .format(Date(project.updatedAt)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                IconButton(onClick = onToggleFavorite) {
+                    Icon(
+                        if (project.favorite) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = stringResource(R.string.toggle_favorite),
+                        tint = if (project.favorite) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.project_options))
+                    }
+                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.rename)) },
+                            onClick = { menuExpanded = false; onRename() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete)) },
+                            onClick = { menuExpanded = false; onDelete() },
                         )
                     }
                 }
@@ -211,11 +576,56 @@ fun HomeScreen(
 }
 
 @Composable
+private fun RenameDialog(
+    project: Project,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var name by remember(project.id) { mutableStateOf(project.name) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.rename_project)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = { Text(stringResource(R.string.rename_hint)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(name) }, enabled = name.trim().isNotEmpty()) {
+                Text(stringResource(R.string.save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun EmptyHint(message: String) {
+    Text(
+        message,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 32.dp, horizontal = 24.dp),
+    )
+}
+
+@Composable
 private fun EmptyProjects() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 48.dp),
+            .padding(vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
@@ -240,72 +650,6 @@ private fun EmptyProjects() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-        )
-    }
-}
-
-@Composable
-private fun ProjectRow(
-    project: Project,
-    onOpen: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    var confirmDelete by remember { mutableStateOf(false) }
-    Card(
-        onClick = onOpen,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AsyncImage(
-                model = File(project.imagePath),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-            )
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    project.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                        .format(Date(project.updatedAt)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            IconButton(onClick = { confirmDelete = true }) {
-                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_project))
-            }
-        }
-    }
-    if (confirmDelete) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(R.string.delete_project)) },
-            text = { Text(stringResource(R.string.delete_project_confirm)) },
-            confirmButton = {
-                TextButton(onClick = { confirmDelete = false; onDelete() }) {
-                    Text(stringResource(R.string.delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
         )
     }
 }
