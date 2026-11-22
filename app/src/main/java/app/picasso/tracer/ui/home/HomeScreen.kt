@@ -69,8 +69,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -101,6 +103,7 @@ fun HomeScreen(
     val sort by viewModel.sort.collectAsState()
     val favoritesOnly by viewModel.favoritesOnly.collectAsState()
     val snackbar = remember { SnackbarHostState() }
+    val haptics = LocalHapticFeedback.current
     val untitled = stringResource(R.string.project_untitled)
 
     var deleting by remember { mutableStateOf<Project?>(null) }
@@ -289,7 +292,10 @@ fun HomeScreen(
                 ProjectCard(
                     project = project,
                     onOpen = { onOpenProject(project.id) },
-                    onToggleFavorite = { viewModel.toggleFavorite(project) },
+                    onToggleFavorite = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.toggleFavorite(project)
+                    },
                     onRename = { renaming = project },
                     onDelete = { deleting = project },
                 )
