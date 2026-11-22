@@ -25,10 +25,33 @@ your device.**
   [Google's Privacy Policy](https://policies.google.com/privacy). Picasso
   itself sends nothing to Google or anyone else.
 
+## Accounts (optional sign-in)
+
+You can sign in with Google to personalize Settings. The app stores only
+your email and display name **on your device** — there is no account server
+and no sync. **Deleting your account** (Settings → Delete account) erases
+that stored profile immediately. Your tracings are device files, not account
+data, so they stay until you clear the app's data or uninstall.
+
+## Advertising (free version)
+
+The free version shows banner ads outside the camera screen via AdMob.
+AdMob may collect device identifiers (such as the advertising ID) and coarse
+location to serve and measure ads, governed by
+[Google's Privacy Policy](https://policies.google.com/privacy). In regions
+requiring consent, a consent form appears on first launch. Buying Picasso Pro
+removes ads entirely.
+
+## Purchases
+
+Pro upgrades are processed by Google Play; Picasso only stores an
+unlocked flag on your device. Refunds and payment data are handled by Google
+under the [Google Play Terms](https://play.google.com/about/play-terms/).
+
 ## Information the app does NOT collect
 
-No accounts, no analytics, no advertising identifiers, no crash reports, no
-location, no contacts. The app works fully offline and talks to no servers.
+No analytics, no crash reports, no location, no contacts. The tracing core
+works fully offline and talks to no servers.
 
 ## Data retention and deletion
 
