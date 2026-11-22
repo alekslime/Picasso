@@ -5,10 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FlashlightOff
 import androidx.compose.material.icons.filled.FlashlightOn
 import androidx.compose.material.icons.filled.Lock
@@ -27,6 +29,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
@@ -44,20 +48,33 @@ fun TraceControls(
     onFlipV: () -> Unit,
     onToggleTorch: () -> Unit,
     onResetView: () -> Unit,
+    onCollapse: () -> Unit,
     modifier: Modifier = Modifier,
     extraContent: @Composable () -> Unit = {},
 ) {
+    val haptics = LocalHapticFeedback.current
+    fun toggled(action: () -> Unit) {
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        action()
+    }
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = MaterialTheme.shapes.extraLarge,
         modifier = modifier,
     ) {
-        // Sections stack up (filters, grid, strobe, steps, record); scroll when tall.
+        // Sections stack up (filters, light, grid, strobe, steps, record); scroll when tall.
         Column(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            IconButton(
+                onClick = onCollapse,
+                modifier = Modifier.size(32.dp),
+            ) {
+                Icon(Icons.Default.ExpandMore, contentDescription = stringResource(R.string.collapse_panel))
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     stringResource(R.string.opacity),
@@ -86,11 +103,11 @@ fun TraceControls(
             ) {
                 // Toggles read as on/off via filled vs outlined containers.
                 if (locked) {
-                    FilledTonalIconButton(onClick = onToggleLock) {
+                    FilledTonalIconButton(onClick = { toggled(onToggleLock) }) {
                         Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.unlock_overlay))
                     }
                 } else {
-                    OutlinedIconButton(onClick = onToggleLock) {
+                    OutlinedIconButton(onClick = { toggled(onToggleLock) }) {
                         Icon(Icons.Default.LockOpen, contentDescription = stringResource(R.string.lock_overlay))
                     }
                 }
@@ -101,11 +118,11 @@ fun TraceControls(
                     Icon(Icons.Default.SwapVert, contentDescription = stringResource(R.string.flip_vertical))
                 }
                 if (torchOn) {
-                    FilledTonalIconButton(onClick = onToggleTorch) {
+                    FilledTonalIconButton(onClick = { toggled(onToggleTorch) }) {
                         Icon(Icons.Default.FlashlightOn, contentDescription = stringResource(R.string.toggle_flashlight))
                     }
                 } else {
-                    OutlinedIconButton(onClick = onToggleTorch) {
+                    OutlinedIconButton(onClick = { toggled(onToggleTorch) }) {
                         Icon(Icons.Default.FlashlightOff, contentDescription = stringResource(R.string.toggle_flashlight))
                     }
                 }
