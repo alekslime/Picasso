@@ -24,6 +24,7 @@ fun AnchorBar(
     mode: OverlayMode,
     engine: ArEngine = ArEngine.OFF,
     status: ArStatus = ArStatus.Idle,
+    isPro: Boolean = true,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -40,6 +41,13 @@ fun AnchorBar(
                 onClick = { if (!ar) onToggle() },
                 label = stringResource(R.string.ar_anchor),
                 leadingIcon = { Icon(Icons.Default.CenterFocusStrong, contentDescription = null) },
+            )
+        }
+        if (!ar && !isPro) {
+            Text(
+                stringResource(R.string.pro_tagline),
+                style = MaterialTheme.typography.bodySmall,
+                color = PicassoPaperMuted,
             )
         }
         if (ar) {

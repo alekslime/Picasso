@@ -70,6 +70,16 @@
     <string name="delete_account_text">This removes your stored profile from this device. Your tracings stay on the device until you clear app data.</string>
     <string name="sign_in_failed">Sign-in failed — try again</string>
     <string name="sign_in_not_configured">Sign-in is not set up in this build yet</string>
+    <string name="pro">Picasso Pro</string>
+    <string name="pro_tagline">Support Picasso and unlock power features</string>
+    <string name="pro_buy">Go Pro</string>
+    <string name="pro_unlocked">Pro unlocked — thank you</string>
+    <string name="pro_restore">Restore purchase</string>
+    <string name="pro_restored">Purchase restored</string>
+    <string name="pro_failed">Purchase failed — try again</string>
+    <string name="pro_unavailable">Play billing is unavailable on this device</string>
+    <string name="pro_required">AR anchor is Pro — tap to upgrade</string>
+    <string name="pro_welcome">Welcome to Pro — tap AR to anchor</string>
 
     <!-- Trace screen -->
     <string name="opacity">Opacity</string>

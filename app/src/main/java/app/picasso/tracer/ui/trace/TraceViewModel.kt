@@ -27,6 +27,8 @@ import app.picasso.tracer.filters.BeforeAfter
 import app.picasso.tracer.filters.FilterProcessor
 import app.picasso.tracer.filters.GpuFilters
 import app.picasso.tracer.filters.StepGenerator
+import app.picasso.tracer.monetization.ProBilling
+import app.picasso.tracer.monetization.ProEvent
 import app.picasso.tracer.filters.StepLayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -38,6 +40,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -78,6 +82,7 @@ data class TraceUiState(
     val arPreviewSize: Pair<Int, Int>? = null,
     val arInstallNudged: Boolean = false,
     val torchOn: Boolean = false,
+    val proUnlocked: Boolean = false,
     // Timelapse is session-only; frames land in Pictures/Picasso.
     val timelapseActive: Boolean = false,
     val timelapseIntervalSec: Int = 10,
@@ -94,6 +99,7 @@ class TraceViewModel @Inject constructor(
     val cameraManager: CameraManager,
     private val motionTracker: MotionTracker,
     private val arCore: ArCoreAnchorSource,
+    private val proBilling: ProBilling,
     private val imageStore: ImageStore,
     private val filters: FilterProcessor,
     private val stepGenerator: StepGenerator,
@@ -175,6 +181,29 @@ class TraceViewModel @Inject constructor(
                     startSensorAnchor()
                     _uiState.update {
                         it.copy(arEngine = ArEngine.SENSOR, noticeRes = R.string.ar_core_fallback)
+                    }
+                }
+            }
+        }
+        viewModelScope.launch {
+            settings.settings.map { it.proUnlocked }.distinctUntilChanged().collect { pro ->
+                _uiState.update { it.copy(proUnlocked = pro) }
+            }
+        }
+        proBilling.connect()
+        viewModelScope.launch {
+            proBilling.events.collect { event ->
+                when (event) {
+                    ProEvent.Purchased -> {
+                        _uiState.update { it.copy(noticeRes = R.string.pro_welcome) }
+                    }
+                    ProEvent.Restored -> Unit
+                    ProEvent.Cancelled -> Unit
+                    ProEvent.Failed -> {
+                        _uiState.update { it.copy(noticeRes = R.string.pro_failed) }
+                    }
+                    ProEvent.Unavailable -> {
+                        _uiState.update { it.copy(noticeRes = R.string.pro_unavailable) }
                     }
                 }
             }
@@ -317,6 +346,11 @@ class TraceViewModel @Inject constructor(
     private fun enableArMode(activity: Activity) {
         if (cameraState.value.recording) {
             _uiState.update { it.copy(noticeRes = R.string.ar_no_recording) }
+            return
+        }
+        if (!_uiState.value.proUnlocked) {
+            _uiState.update { it.copy(noticeRes = R.string.pro_required) }
+            proBilling.buyPro(activity)
             return
         }
         // Sensor anchor starts instantly; true AR upgrades it once the surface is ready.

@@ -370,6 +370,7 @@ fun TraceScreen(
                             mode = state.overlayMode,
                             engine = state.arEngine,
                             status = state.arStatus,
+                            isPro = state.proUnlocked,
                             onToggle = { activity?.let { viewModel.toggleAnchorMode(it) } },
                         )
                         FilterBar(selected = state.filter, onSelect = viewModel::setFilter)

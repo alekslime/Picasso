@@ -60,6 +60,8 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsState()
     val errorRes by viewModel.errorRes.collectAsState()
+    val proPrice by viewModel.proPrice.collectAsState()
+    LaunchedEffect(Unit) { viewModel.loadProPrice() }
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     val activity = context as? android.app.Activity
@@ -116,6 +118,13 @@ fun SettingsScreen(
                 onSignIn = { activity?.let { viewModel.signIn(it) } },
                 onSignOut = viewModel::signOut,
                 onDelete = { confirmDelete = true },
+            )
+            Spacer(Modifier.height(24.dp))
+            ProSection(
+                proUnlocked = settings.proUnlocked,
+                price = proPrice,
+                onBuy = { activity?.let { viewModel.buyPro(it) } },
+                onRestore = viewModel::restorePro,
             )
             Spacer(Modifier.height(24.dp))
             SectionLabel(stringResource(R.string.new_project_defaults))
@@ -301,6 +310,48 @@ private fun AccountSection(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ProSection(
+    proUnlocked: Boolean,
+    price: String?,
+    onBuy: () -> Unit,
+    onRestore: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        SectionLabel(stringResource(R.string.pro))
+        Spacer(Modifier.height(4.dp))
+        if (proUnlocked) {
+            Text(
+                stringResource(R.string.pro_unlocked),
+                style = MaterialTheme.typography.titleSmall,
+            )
+        } else {
+            Text(
+                stringResource(R.string.pro_tagline),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = onBuy,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+            ) {
+                Text(
+                    if (price != null) "${stringResource(R.string.pro_buy)} — $price"
+                    else stringResource(R.string.pro_buy),
+                )
+            }
+        }
+        TextButton(onClick = onRestore) {
+            Text(stringResource(R.string.pro_restore))
         }
     }
 }
