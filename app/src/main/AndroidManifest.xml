@@ -3,6 +3,9 @@
 
     <uses-feature android:name="android.hardware.camera.any" android:required="true" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- ARCore is optional: AR anchor is one mode, the app works fully without it.
+         "optional" keeps Play Store availability on non-AR devices. -->
+    <meta-data android:name="com.google.ar.core" android:value="optional" />
     <!-- Needed only on API <= 28 to write recordings; MediaStore needs none on 29+. -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"

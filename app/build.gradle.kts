@@ -77,6 +77,8 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.datastore.preferences)
 
+    implementation(libs.arcore.core)
+
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
 }
