@@ -1,7 +1,7 @@
 package app.picasso.tracer.ui.trace
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Compare
 import androidx.compose.material3.FilterChip
@@ -26,6 +26,7 @@ fun StrobeBar(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier,
     ) {
         FilterChip(
@@ -35,16 +36,16 @@ fun StrobeBar(
             leadingIcon = { Icon(Icons.Default.Compare, contentDescription = null) },
         )
         if (enabled) {
+            Text(
+                stringResource(R.string.strobe_speed),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Slider(
                 value = hz,
                 onValueChange = onHz,
                 valueRange = 0.5f..4f,
                 modifier = Modifier.weight(1f),
-            )
-            Text(
-                stringResource(R.string.strobe_speed),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.widthIn(max = 72.dp),
             )
         }
     }

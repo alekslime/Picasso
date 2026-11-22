@@ -11,8 +11,10 @@ import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -231,33 +233,38 @@ fun TraceScreen(
                 onToggleTorch = { viewModel.setTorch(!cameraState.torchOn) },
                 onResetView = viewModel::resetView,
                 extraContent = {
-                    FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
-                    GridBar(
-                        visible = state.gridVisible,
-                        rows = state.gridRows,
-                        columns = state.gridCols,
-                        onToggle = viewModel::toggleGrid,
-                        onRows = viewModel::setGridRows,
-                        onColumns = viewModel::setGridCols,
-                    )
-                    StrobeBar(
-                        enabled = state.strobeOn,
-                        hz = state.strobeHz,
-                        onToggle = viewModel::toggleStrobe,
-                        onHz = viewModel::setStrobeHz,
-                    )
-                    StepsBar(
-                        active = state.stepIndex != null,
-                        steps = state.steps,
-                        stepIndex = state.stepIndex ?: 0,
-                        onToggle = viewModel::toggleSteps,
-                        onPrevious = viewModel::previousStep,
-                        onNext = viewModel::nextStep,
-                    )
-                    RecordBar(
-                        recording = cameraState.recording,
-                        onToggle = ::onRecordToggle,
-                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(top = 4.dp),
+                    ) {
+                        FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
+                        GridBar(
+                            visible = state.gridVisible,
+                            rows = state.gridRows,
+                            columns = state.gridCols,
+                            onToggle = viewModel::toggleGrid,
+                            onRows = viewModel::setGridRows,
+                            onColumns = viewModel::setGridCols,
+                        )
+                        StrobeBar(
+                            enabled = state.strobeOn,
+                            hz = state.strobeHz,
+                            onToggle = viewModel::toggleStrobe,
+                            onHz = viewModel::setStrobeHz,
+                        )
+                        StepsBar(
+                            active = state.stepIndex != null,
+                            steps = state.steps,
+                            stepIndex = state.stepIndex ?: 0,
+                            onToggle = viewModel::toggleSteps,
+                            onPrevious = viewModel::previousStep,
+                            onNext = viewModel::nextStep,
+                        )
+                        RecordBar(
+                            recording = cameraState.recording,
+                            onToggle = ::onRecordToggle,
+                        )
+                    }
                 },
                 modifier = if (landscape) {
                     Modifier

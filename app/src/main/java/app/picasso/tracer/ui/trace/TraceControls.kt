@@ -3,6 +3,7 @@ package app.picasso.tracer.ui.trace
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -15,9 +16,11 @@ import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import kotlin.math.roundToInt
 
-/** Bottom/side bar: opacity, lock, flips, flashlight, reset. Extra rows plug in below. */
+/** Bottom/side panel: opacity, lock, flips, flashlight, reset. Extra rows plug in below. */
 @Composable
 fun TraceControls(
     opacity: Float,
@@ -45,20 +48,21 @@ fun TraceControls(
     extraContent: @Composable () -> Unit = {},
 ) {
     Surface(
-        tonalElevation = 3.dp,
-        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.extraLarge,
         modifier = modifier,
     ) {
         // Sections stack up (filters, grid, strobe, steps, record); scroll when tall.
         Column(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     stringResource(R.string.opacity),
                     style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.widthIn(min = 64.dp),
                 )
                 Slider(
@@ -70,38 +74,42 @@ fun TraceControls(
                 Text(
                     "${(opacity * 100).roundToInt()}%",
                     style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.widthIn(min = 44.dp),
                 )
             }
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier.padding(bottom = 4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
             ) {
-                IconButton(onClick = onToggleLock) {
-                    Icon(
-                        if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
-                        contentDescription = stringResource(
-                            if (locked) R.string.unlock_overlay else R.string.lock_overlay,
-                        ),
-                        tint = if (locked) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface,
-                    )
+                // Toggles read as on/off via filled vs outlined containers.
+                if (locked) {
+                    FilledTonalIconButton(onClick = onToggleLock) {
+                        Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.unlock_overlay))
+                    }
+                } else {
+                    OutlinedIconButton(onClick = onToggleLock) {
+                        Icon(Icons.Default.LockOpen, contentDescription = stringResource(R.string.lock_overlay))
+                    }
                 }
-                IconButton(onClick = onFlipH) {
+                OutlinedIconButton(onClick = onFlipH) {
                     Icon(Icons.Default.SwapHoriz, contentDescription = stringResource(R.string.flip_horizontal))
                 }
-                IconButton(onClick = onFlipV) {
+                OutlinedIconButton(onClick = onFlipV) {
                     Icon(Icons.Default.SwapVert, contentDescription = stringResource(R.string.flip_vertical))
                 }
-                IconButton(onClick = onToggleTorch) {
-                    Icon(
-                        if (torchOn) Icons.Default.FlashlightOn else Icons.Default.FlashlightOff,
-                        contentDescription = stringResource(R.string.toggle_flashlight),
-                        tint = if (torchOn) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface,
-                    )
+                if (torchOn) {
+                    FilledTonalIconButton(onClick = onToggleTorch) {
+                        Icon(Icons.Default.FlashlightOn, contentDescription = stringResource(R.string.toggle_flashlight))
+                    }
+                } else {
+                    OutlinedIconButton(onClick = onToggleTorch) {
+                        Icon(Icons.Default.FlashlightOff, contentDescription = stringResource(R.string.toggle_flashlight))
+                    }
                 }
-                IconButton(onClick = onResetView) {
+                OutlinedIconButton(onClick = onResetView) {
                     Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.reset_view))
                 }
             }

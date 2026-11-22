@@ -4,7 +4,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -77,11 +79,7 @@ fun GridBar(
             )
         }
         if (visible) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.padding(top = 4.dp),
-            ) {
+            Column(modifier = Modifier.padding(top = 4.dp)) {
                 Stepper(
                     label = stringResource(R.string.grid_rows),
                     value = rows,
@@ -103,12 +101,24 @@ private fun Stepper(
     value: Int,
     onValue: (Int) -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.labelMedium)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
         IconButton(onClick = { onValue(value - 1) }) {
             Icon(Icons.Default.Remove, contentDescription = null)
         }
-        Text("$value", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            "$value",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.widthIn(min = 20.dp),
+        )
         IconButton(onClick = { onValue(value + 1) }) {
             Icon(Icons.Default.Add, contentDescription = null)
         }
