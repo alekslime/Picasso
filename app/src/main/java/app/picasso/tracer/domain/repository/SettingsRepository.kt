@@ -12,4 +12,6 @@ interface SettingsRepository {
     suspend fun setDefaultOpacity(opacity: Float)
 
     suspend fun setDefaultGrid(rows: Int, cols: Int)
+
+    suspend fun setTutorialCompleted()
 }

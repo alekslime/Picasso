@@ -61,6 +61,10 @@ private class FakeSettingsRepository(
     override suspend fun setDefaultGrid(rows: Int, cols: Int) {
         state.update { it.copy(defaultGridRows = rows, defaultGridCols = cols) }
     }
+
+    override suspend fun setTutorialCompleted() {
+        state.update { it.copy(tutorialCompleted = true) }
+    }
 }
 
 class ProjectRepositoryTest {

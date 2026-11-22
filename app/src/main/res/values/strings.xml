@@ -76,6 +76,16 @@
     <string name="record">Record</string>
     <string name="timelapse">Timelapse</string>
     <string name="before_after">Before / After</string>
+    <string name="tutorial_step">Step %1$d of 3</string>
+    <string name="tutorial_1_title">Place your reference</string>
+    <string name="tutorial_1_body">Drag to move it. Pinch to scale, twist with two fingers to rotate.</string>
+    <string name="tutorial_2_title">Lock when aligned</string>
+    <string name="tutorial_2_body">Tap the lock so gestures stop moving the overlay while you draw.</string>
+    <string name="tutorial_3_title">Make it yours</string>
+    <string name="tutorial_3_body">Open the panel for filters, guides, steps and recording.</string>
+    <string name="tutorial_next">Next</string>
+    <string name="tutorial_skip">Skip</string>
+    <string name="tutorial_done">Start tracing</string>
     <string name="before_after_saved">Before/after saved to gallery</string>
     <string name="timelapse_frames">%1$d frames</string>
     <string name="timelapse_saved">Timelapse frame saved</string>

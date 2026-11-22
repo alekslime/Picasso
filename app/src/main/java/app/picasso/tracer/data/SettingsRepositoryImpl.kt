@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import app.picasso.tracer.domain.model.PicassoSettings
 import app.picasso.tracer.domain.model.ThemeMode
 import app.picasso.tracer.domain.repository.SettingsRepository
@@ -31,6 +32,7 @@ class SettingsRepositoryImpl @Inject constructor(
                     ?: PicassoSettings().defaultGridRows,
                 defaultGridCols = prefs[Keys.DEFAULT_GRID_COLS]?.coerceIn(1, 8)
                     ?: PicassoSettings().defaultGridCols,
+                tutorialCompleted = prefs[Keys.TUTORIAL_COMPLETED] ?: false,
             )
         }
 
@@ -40,6 +42,10 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setDefaultOpacity(opacity: Float) {
         dataStore.edit { it[Keys.DEFAULT_OPACITY] = opacity.coerceIn(0f, 1f) }
+    }
+
+    override suspend fun setTutorialCompleted() {
+        dataStore.edit { it[Keys.TUTORIAL_COMPLETED] = true }
     }
 
     override suspend fun setDefaultGrid(rows: Int, cols: Int) {
@@ -54,5 +60,6 @@ class SettingsRepositoryImpl @Inject constructor(
         val DEFAULT_OPACITY = floatPreferencesKey("default_opacity")
         val DEFAULT_GRID_ROWS = intPreferencesKey("default_grid_rows")
         val DEFAULT_GRID_COLS = intPreferencesKey("default_grid_cols")
+        val TUTORIAL_COMPLETED = booleanPreferencesKey("tutorial_completed")
     }
 }

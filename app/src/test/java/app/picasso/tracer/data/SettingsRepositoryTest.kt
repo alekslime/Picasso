@@ -42,6 +42,14 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun `tutorial flag persists`() = runTest {
+        val repo = repository()
+        assertEquals(false, repo.settings.first().tutorialCompleted)
+        repo.setTutorialCompleted()
+        assertEquals(true, repo.settings.first().tutorialCompleted)
+    }
+
+    @Test
     fun `setters persist and coerce`() = runTest {
         val repo = repository()
 

@@ -13,4 +13,6 @@ data class PicassoSettings(
     val defaultOpacity: Float = 0.5f,
     val defaultGridRows: Int = 3,
     val defaultGridCols: Int = 3,
+    /** First-trace tutorial: shown until the user finishes or skips it once. */
+    val tutorialCompleted: Boolean = false,
 )
