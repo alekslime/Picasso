@@ -53,6 +53,7 @@ class ArCoreAnchorSource @Inject constructor(
 ) {
     val drift = kotlinx.coroutines.flow.MutableStateFlow(AnchorDrift())
     val status = kotlinx.coroutines.flow.MutableStateFlow(ArStatus.Idle)
+    val previewSize = kotlinx.coroutines.flow.MutableStateFlow<Pair<Int, Int>?>(null)
 
     private var thread: HandlerThread? = null
     private var bg: Handler? = null
@@ -108,10 +109,14 @@ class ArCoreAnchorSource @Inject constructor(
      */
     fun start(
         activity: Activity,
-        previewSurface: Surface,
+        previewTexture: SurfaceTexture,
         viewWidthPx: Int,
         viewHeightPx: Int,
     ) {
+        val buffer = choosePreviewBuffer()
+        previewTexture.setDefaultBufferSize(buffer.first, buffer.second)
+        previewSize.value = buffer
+        val previewSurface = Surface(previewTexture)
         stop()
         viewWidth = max(1, viewWidthPx)
         viewHeight = max(1, viewHeightPx)
@@ -373,8 +378,22 @@ class ArCoreAnchorSource @Inject constructor(
         }
     }
 
+    private fun choosePreviewBuffer(): Pair<Int, Int> {
+        val cameraId = session?.cameraConfig?.cameraId ?: return 1920 to 1080
+        val sizes = runCatching {
+            val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            manager.getCameraCharacteristics(cameraId)
+                .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+                ?.getOutputSizes(SurfaceTexture::class.java)
+                ?.filter { it.width <= 1920 && it.height <= 1080 }
+                ?.maxByOrNull { it.width * it.height }
+        }.getOrNull()
+        return if (sizes != null) sizes.width to sizes.height else 1920 to 1080
+    }
+
     fun stop() {
         running = false
+        previewSize.value = null
         stillCallback = null
         runCatching { captureSession?.close() }
         captureSession = null

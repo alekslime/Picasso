@@ -76,6 +76,7 @@ data class TraceUiState(
     val arEngine: ArEngine = ArEngine.OFF,
     val arStatus: ArStatus = ArStatus.Idle,
     val arPreviewSize: Pair<Int, Int>? = null,
+    val arInstallNudged: Boolean = false,
     val torchOn: Boolean = false,
     // Timelapse is session-only; frames land in Pictures/Picasso.
     val timelapseActive: Boolean = false,
@@ -160,7 +161,14 @@ class TraceViewModel @Inject constructor(
                 val wasCore = _uiState.value.arEngine == ArEngine.CORE
                 _uiState.update { it.copy(arStatus = status) }
                 if (status == ArStatus.Locked && wasCore) {
-                    _uiState.update { it.copy(noticeRes = R.string.ar_locked_on) }
+                    val fresh = _uiState.value.arStatus != ArStatus.Locked
+                    arAnchor.reset()
+                    _uiState.update {
+                        it.copy(
+                            anchorDrift = AnchorDrift(),
+                            noticeRes = if (fresh) R.string.ar_locked_on else it.noticeRes,
+                        )
+                    }
                 }
                 if (status == ArStatus.Failed && wasCore) {
                     // True AR failed mid-session: fall back to the sensor anchor.
@@ -300,6 +308,7 @@ class TraceViewModel @Inject constructor(
                     anchorDrift = AnchorDrift(),
                     arEngine = ArEngine.OFF,
                     arStatus = ArStatus.Idle,
+                    arInstallNudged = false,
                 )
             }
         }
@@ -311,11 +320,13 @@ class TraceViewModel @Inject constructor(
             return
         }
         // Sensor anchor starts instantly; true AR upgrades it once the surface is ready.
-        startSensorAnchor()
-        _uiState.update { it.copy(overlayMode = OverlayMode.AR) }
+        if (_uiState.value.arEngine != ArEngine.SENSOR) {
+            startSensorAnchor()
+            _uiState.update { it.copy(overlayMode = OverlayMode.AR) }
+        }
         if (arCore.availability() != app.picasso.tracer.camera.ArAvailability.Supported) return
         if (!arCore.ensureInstalled(activity)) {
-            _uiState.update { it.copy(noticeRes = R.string.ar_install) }
+            _uiState.update { it.copy(noticeRes = R.string.ar_install, arInstallNudged = true) }
             return
         }
         _uiState.update { it.copy(arEngine = ArEngine.CORE, arStatus = ArStatus.Searching) }
@@ -333,8 +344,18 @@ class TraceViewModel @Inject constructor(
         _uiState.update { it.copy(noticeRes = R.string.ar_searching) }
     }
 
+    /** Auto-upgrades sensor AR to true AR after the user returns from ARCore install. */
     fun retryArCore(activity: Activity) {
         if (_uiState.value.overlayMode != OverlayMode.AR) return
+        if (_uiState.value.arEngine == ArEngine.CORE) return
+        if (_uiState.value.arInstallNudged) {
+            // Still check silently: the user may have completed the install.
+            if (arCore.availability() != app.picasso.tracer.camera.ArAvailability.Supported) return
+            if (!arCore.ensureInstalled(activity)) return
+            _uiState.update { it.copy(arEngine = ArEngine.CORE, arStatus = ArStatus.Searching) }
+            return
+        }
+        if (arCore.availability() != app.picasso.tracer.camera.ArAvailability.Supported) return
         enableArMode(activity)
     }
 

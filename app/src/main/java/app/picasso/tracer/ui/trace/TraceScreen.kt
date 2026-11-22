@@ -66,6 +66,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.picasso.tracer.MainActivity
 import app.picasso.tracer.R
@@ -204,6 +206,16 @@ fun TraceScreen(
             LaunchedEffect(lifecycleOwner, coreCamera) {
                 // ARCore owns the camera in core mode; every other state uses CameraX.
                 if (!coreCamera) viewModel.rebindCamera(lifecycleOwner)
+            }
+            DisposableEffect(lifecycleOwner) {
+                // Catches the return from the ARCore install flow: upgrades sensor AR silently.
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        activity?.let { viewModel.retryArCore(it) }
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
             }
 
             val overlayVisible = !state.strobeOn || state.strobePhase

@@ -36,6 +36,7 @@ class MotionTracker @Inject constructor(
     private var smoothed = AnchorDrift()
 
     fun start(onDrift: (AnchorDrift) -> Unit) {
+        stop()
         val s = sensor ?: run {
             onDrift(AnchorDrift())
             return
