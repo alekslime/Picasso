@@ -58,3 +58,6 @@ class ArAnchor : OverlayAnchor {
     override fun resolve(base: OverlayTransform): OverlayTransform =
         base.withDrift(drift.x, drift.y, drift.rotationDeg)
 }
+
+/** Which tracking backend drives AR mode. SENSOR is instant; CORE is true world anchoring. */
+enum class ArEngine { OFF, SENSOR, CORE }

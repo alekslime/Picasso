@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
+import app.picasso.tracer.camera.ArEngine
+import app.picasso.tracer.camera.ArStatus
 import app.picasso.tracer.camera.OverlayMode
 import app.picasso.tracer.ui.theme.PicassoPaperMuted
 
@@ -20,6 +22,8 @@ import app.picasso.tracer.ui.theme.PicassoPaperMuted
 @Composable
 fun AnchorBar(
     mode: OverlayMode,
+    engine: ArEngine = ArEngine.OFF,
+    status: ArStatus = ArStatus.Idle,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -39,8 +43,15 @@ fun AnchorBar(
             )
         }
         if (ar) {
+            val copy = when {
+                engine == ArEngine.CORE && status == ArStatus.Searching ->
+                    stringResource(R.string.ar_searching)
+                engine == ArEngine.CORE && status == ArStatus.Locked ->
+                    stringResource(R.string.ar_locked_on)
+                else -> stringResource(R.string.ar_anchor_hint)
+            }
             Text(
-                stringResource(R.string.ar_anchor_hint),
+                copy,
                 style = MaterialTheme.typography.bodySmall,
                 color = PicassoPaperMuted,
             )

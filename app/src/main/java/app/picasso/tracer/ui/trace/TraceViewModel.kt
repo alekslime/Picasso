@@ -7,7 +7,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.picasso.tracer.R
 import app.picasso.tracer.camera.CameraManager
+import android.app.Activity
+import android.graphics.SurfaceTexture
 import app.picasso.tracer.camera.AnchorDrift
+import app.picasso.tracer.camera.ArCoreAnchorSource
+import app.picasso.tracer.camera.ArEngine
+import app.picasso.tracer.camera.ArStatus
 import app.picasso.tracer.camera.ArAnchor
 import app.picasso.tracer.camera.MotionTracker
 import app.picasso.tracer.camera.OverlayMode
@@ -36,6 +41,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.resume
 import javax.inject.Inject
 
 data class TraceUiState(
@@ -67,6 +73,10 @@ data class TraceUiState(
     // AR anchor mode is session-only (reference pose dies with the session).
     val overlayMode: OverlayMode = OverlayMode.CLASSIC,
     val anchorDrift: AnchorDrift = AnchorDrift(),
+    val arEngine: ArEngine = ArEngine.OFF,
+    val arStatus: ArStatus = ArStatus.Idle,
+    val arPreviewSize: Pair<Int, Int>? = null,
+    val torchOn: Boolean = false,
     // Timelapse is session-only; frames land in Pictures/Picasso.
     val timelapseActive: Boolean = false,
     val timelapseIntervalSec: Int = 10,
@@ -82,6 +92,7 @@ class TraceViewModel @Inject constructor(
     private val repository: ProjectRepository,
     val cameraManager: CameraManager,
     private val motionTracker: MotionTracker,
+    private val arCore: ArCoreAnchorSource,
     private val imageStore: ImageStore,
     private val filters: FilterProcessor,
     private val stepGenerator: StepGenerator,
@@ -133,6 +144,33 @@ class TraceViewModel @Inject constructor(
             }
         }
         startAutoSave()
+        viewModelScope.launch {
+            arCore.drift.collect { drift ->
+                arAnchor.update(drift)
+                _uiState.update { it.copy(anchorDrift = drift) }
+            }
+        }
+        viewModelScope.launch {
+            arCore.previewSize.collect { size ->
+                _uiState.update { it.copy(arPreviewSize = size) }
+            }
+        }
+        viewModelScope.launch {
+            arCore.status.collect { status ->
+                val wasCore = _uiState.value.arEngine == ArEngine.CORE
+                _uiState.update { it.copy(arStatus = status) }
+                if (status == ArStatus.Locked && wasCore) {
+                    _uiState.update { it.copy(noticeRes = R.string.ar_locked_on) }
+                }
+                if (status == ArStatus.Failed && wasCore) {
+                    // True AR failed mid-session: fall back to the sensor anchor.
+                    startSensorAnchor()
+                    _uiState.update {
+                        it.copy(arEngine = ArEngine.SENSOR, noticeRes = R.string.ar_core_fallback)
+                    }
+                }
+            }
+        }
         viewModelScope.launch {
             cameraManager.state.collect { state ->
                 if (state.recording) startTicker() else stopTicker()
@@ -241,30 +279,86 @@ class TraceViewModel @Inject constructor(
     fun effectiveTransform(state: TraceUiState): OverlayTransform =
         if (state.overlayMode == OverlayMode.AR) arAnchor.resolve(state.transform) else state.transform
 
-    fun toggleAnchorMode() {
+    fun toggleAnchorMode(activity: Activity) {
         if (_uiState.value.overlayMode == OverlayMode.AR) {
             setAnchorMode(OverlayMode.CLASSIC)
         } else {
-            setAnchorMode(OverlayMode.AR)
+            enableArMode(activity)
         }
     }
 
+    /** Kept for callers without an Activity; AR entry goes through [enableArMode]. */
     fun setAnchorMode(mode: OverlayMode) {
         if (mode == OverlayMode.AR) {
-            if (!motionTracker.available) {
-                _uiState.update { it.copy(noticeRes = R.string.ar_unavailable) }
-                return
-            }
-            motionTracker.start { drift ->
-                arAnchor.update(drift)
-                _uiState.update { it.copy(anchorDrift = drift) }
-            }
+            startSensorAnchor()
             _uiState.update { it.copy(overlayMode = OverlayMode.AR) }
         } else {
-            motionTracker.stop()
-            arAnchor.reset()
-            _uiState.update { it.copy(overlayMode = OverlayMode.CLASSIC, anchorDrift = AnchorDrift()) }
+            stopArAnchors()
+            _uiState.update {
+                it.copy(
+                    overlayMode = OverlayMode.CLASSIC,
+                    anchorDrift = AnchorDrift(),
+                    arEngine = ArEngine.OFF,
+                    arStatus = ArStatus.Idle,
+                )
+            }
         }
+    }
+
+    private fun enableArMode(activity: Activity) {
+        if (cameraState.value.recording) {
+            _uiState.update { it.copy(noticeRes = R.string.ar_no_recording) }
+            return
+        }
+        // Sensor anchor starts instantly; true AR upgrades it once the surface is ready.
+        startSensorAnchor()
+        _uiState.update { it.copy(overlayMode = OverlayMode.AR) }
+        if (arCore.availability() != app.picasso.tracer.camera.ArAvailability.Supported) return
+        if (!arCore.ensureInstalled(activity)) {
+            _uiState.update { it.copy(noticeRes = R.string.ar_install) }
+            return
+        }
+        _uiState.update { it.copy(arEngine = ArEngine.CORE, arStatus = ArStatus.Searching) }
+    }
+
+    /**
+     * Called when the AR TextureView surface is ready. CameraX releases the
+     * camera here so ARCore can take it through the shared session.
+     */
+    fun startCoreAnchor(activity: Activity, texture: SurfaceTexture, widthPx: Int, heightPx: Int) {
+        if (_uiState.value.arEngine != ArEngine.CORE) return
+        stopSensorAnchor()
+        cameraManager.unbind()
+        arCore.start(activity, texture, widthPx, heightPx)
+        _uiState.update { it.copy(noticeRes = R.string.ar_searching) }
+    }
+
+    fun retryArCore(activity: Activity) {
+        if (_uiState.value.overlayMode != OverlayMode.AR) return
+        enableArMode(activity)
+    }
+
+    private fun startSensorAnchor() {
+        if (!motionTracker.available) {
+            _uiState.update { it.copy(noticeRes = R.string.ar_unavailable) }
+            return
+        }
+        arCore.stop()
+        motionTracker.start { drift ->
+            arAnchor.update(drift)
+            _uiState.update { it.copy(anchorDrift = drift) }
+        }
+        _uiState.update { it.copy(arEngine = ArEngine.SENSOR, arStatus = ArStatus.Locked) }
+    }
+
+    private fun stopSensorAnchor() {
+        motionTracker.stop()
+    }
+
+    private fun stopArAnchors() {
+        stopSensorAnchor()
+        arCore.stop()
+        arAnchor.reset()
     }
 
     fun flipHorizontal() {
@@ -304,7 +398,7 @@ class TraceViewModel @Inject constructor(
         val project = _uiState.value.project ?: return
         if (_uiState.value.beforeAfterSaving) return
         _uiState.update { it.copy(beforeAfterSaving = true) }
-        cameraManager.captureStillToFile(
+        captureStillFile(
             onResult = { file ->
                 viewModelScope.launch {
                     val saved = runCatching {
@@ -428,7 +522,17 @@ class TraceViewModel @Inject constructor(
     }
 
     fun setTorch(on: Boolean) {
-        cameraManager.setTorch(on)
+        _uiState.update { it.copy(torchOn = on) }
+        if (_uiState.value.arEngine == ArEngine.CORE) arCore.setTorch(on)
+        else cameraManager.setTorch(on)
+    }
+
+    /** Rebinds CameraX after ARCore releases the camera; restores the torch. */
+    suspend fun rebindCamera(owner: androidx.lifecycle.LifecycleOwner) {
+        cameraManager.bindPreview(owner)
+        if (_uiState.value.torchOn && _uiState.value.arEngine != ArEngine.CORE) {
+            cameraManager.setTorch(true)
+        }
     }
 
     fun toggleLight() {
@@ -474,6 +578,11 @@ class TraceViewModel @Inject constructor(
         _uiState.update { it.copy(noticeRes = null) }
     }
 
+    private fun captureStillFile(onResult: (java.io.File) -> Unit, onError: () -> Unit) {
+        if (_uiState.value.arEngine == ArEngine.CORE) arCore.captureStill(onResult, onError)
+        else cameraManager.captureStillToFile(onResult, onError)
+    }
+
     fun toggleTimelapse() {
         if (_uiState.value.timelapseActive) stopTimelapse() else startTimelapse()
     }
@@ -491,13 +600,40 @@ class TraceViewModel @Inject constructor(
         timelapseJob?.cancel()
         timelapseJob = viewModelScope.launch {
             while (true) {
-                cameraManager.captureStill(
-                    onSaved = { _uiState.update { s -> s.copy(timelapseCount = s.timelapseCount + 1) } },
-                    onError = { _uiState.update { s -> s.copy(noticeRes = R.string.recording_failed) } },
-                )
+                if (_uiState.value.arEngine == ArEngine.CORE) {
+                    captureCoreTimelapseFrame()
+                } else {
+                    cameraManager.captureStill(
+                        onSaved = { _uiState.update { s -> s.copy(timelapseCount = s.timelapseCount + 1) } },
+                        onError = { _uiState.update { s -> s.copy(noticeRes = R.string.recording_failed) } },
+                    )
+                }
                 delay(_uiState.value.timelapseIntervalSec * 1_000L)
             }
         }
+    }
+
+    private suspend fun captureCoreTimelapseFrame() {
+        suspend fun awaitFile(): java.io.File? =
+            kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+                arCore.captureStill(
+                    onResult = { cont.resume(it) },
+                    onError = { cont.resume(null) },
+                )
+            }
+        val file = awaitFile()
+        if (file == null) {
+            _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
+            return
+        }
+        val ok = runCatching {
+            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                ?: error("Missing frame")
+            imageStore.saveToGallery(bitmap, "timelapse-${System.currentTimeMillis()}.jpg")
+        }.getOrDefault(false)
+        runCatching { file.delete() }
+        if (ok) _uiState.update { it.copy(timelapseCount = it.timelapseCount + 1) }
+        else _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
     }
 
     private fun stopTimelapse() {
@@ -508,7 +644,7 @@ class TraceViewModel @Inject constructor(
 
     override fun onCleared() {
         timelapseJob?.cancel()
-        motionTracker.stop()
+        stopArAnchors()
         cameraManager.unbind()
         super.onCleared()
     }

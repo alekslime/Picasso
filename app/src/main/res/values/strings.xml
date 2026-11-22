@@ -12,6 +12,11 @@
     <string name="ar_anchor">AR anchor</string>
     <string name="ar_anchor_hint">Overlay stays on the paper as you move. Beta — move slowly.</string>
     <string name="ar_unavailable">AR anchor needs a motion sensor this device does not have</string>
+    <string name="ar_no_recording">Stop recording to use AR anchor</string>
+    <string name="ar_searching">Finding a flat surface — move the phone slowly</string>
+    <string name="ar_locked_on">Anchor locked — the overlay moves with the paper</string>
+    <string name="ar_core_fallback">True AR unavailable here — using motion anchor</string>
+    <string name="ar_install">Finishing AR setup — tap AR again when done</string>
     <string name="anchor_classic">Classic</string>
     <string name="pick_image">Pick image</string>
     <string name="take_photo">Take photo</string>

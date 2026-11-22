@@ -10,6 +10,9 @@ import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.graphics.Matrix
+import android.graphics.SurfaceTexture
+import android.view.TextureView
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -66,6 +69,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.picasso.tracer.MainActivity
 import app.picasso.tracer.R
+import app.picasso.tracer.camera.ArEngine
+import app.picasso.tracer.camera.OverlayMode
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.filters.GpuFilters
 import app.picasso.tracer.ui.permission.CameraPermissionScreen
@@ -82,6 +87,7 @@ fun TraceScreen(
     viewModel: TraceViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity
     val state by viewModel.uiState.collectAsState()
     var hasPermission by remember {
         mutableStateOf(
@@ -172,20 +178,32 @@ fun TraceScreen(
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
         Box(modifier = Modifier.fillMaxSize()) {
-            AndroidView(
-                factory = { ctx ->
-                    PreviewView(ctx).apply {
-                        scaleType = PreviewView.ScaleType.FILL_CENTER
-                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                    }
-                },
-                update = { previewView ->
-                    viewModel.cameraManager.preview.setSurfaceProvider(previewView.surfaceProvider)
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
-            LaunchedEffect(lifecycleOwner) {
-                viewModel.cameraManager.bindPreview(lifecycleOwner)
+            val coreCamera = state.overlayMode == OverlayMode.AR && state.arEngine == ArEngine.CORE
+            if (coreCamera) {
+                ArCameraPreview(
+                    previewSize = state.arPreviewSize,
+                    onSurfaceReady = { texture, w, h ->
+                        activity?.let { viewModel.startCoreAnchor(it, texture, w, h) }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                AndroidView(
+                    factory = { ctx ->
+                        PreviewView(ctx).apply {
+                            scaleType = PreviewView.ScaleType.FILL_CENTER
+                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                        }
+                    },
+                    update = { previewView ->
+                        viewModel.cameraManager.preview.setSurfaceProvider(previewView.surfaceProvider)
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            LaunchedEffect(lifecycleOwner, coreCamera) {
+                // ARCore owns the camera in core mode; every other state uses CameraX.
+                if (!coreCamera) viewModel.rebindCamera(lifecycleOwner)
             }
 
             val overlayVisible = !state.strobeOn || state.strobePhase
@@ -323,12 +341,12 @@ fun TraceScreen(
             TraceControls(
                 opacity = state.opacity,
                 locked = state.locked,
-                torchOn = cameraState.torchOn,
+                torchOn = state.torchOn,
                 onOpacity = viewModel::setOpacity,
                 onToggleLock = viewModel::toggleLock,
                 onFlipH = viewModel::flipHorizontal,
                 onFlipV = viewModel::flipVertical,
-                onToggleTorch = { viewModel.setTorch(!cameraState.torchOn) },
+                onToggleTorch = { viewModel.setTorch(!state.torchOn) },
                 onResetView = viewModel::resetView,
                 onCollapse = { panelVisible = false },
                 extraContent = {
@@ -336,7 +354,12 @@ fun TraceScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.padding(top = 4.dp),
                     ) {
-                        AnchorBar(mode = state.overlayMode, onToggle = viewModel::toggleAnchorMode)
+                        AnchorBar(
+                            mode = state.overlayMode,
+                            engine = state.arEngine,
+                            status = state.arStatus,
+                            onToggle = { activity?.let { viewModel.toggleAnchorMode(it) } },
+                        )
                         FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
                         LightBar(
                             expanded = state.lightExpanded,
@@ -412,7 +435,7 @@ fun TraceScreen(
                         CleanTraceDeck(
                         opacity = state.opacity,
                         locked = state.locked,
-                        torchOn = cameraState.torchOn,
+                        torchOn = state.torchOn,
                         filter = state.filter,
                         gridVisible = state.gridVisible,
                         gridLabel = if (state.gridVisible) {
@@ -423,12 +446,12 @@ fun TraceScreen(
                         } else stringResource(R.string.guide_off).uppercase(),
                         recording = cameraState.recording,
                         anchorActive = state.overlayMode == app.picasso.tracer.camera.OverlayMode.AR,
-                        onToggleAnchor = viewModel::toggleAnchorMode,
+                        onToggleAnchor = { activity?.let { viewModel.toggleAnchorMode(it) } },
                         onOpacity = viewModel::setOpacity,
                         onToggleLock = viewModel::toggleLock,
                         onFlipH = viewModel::flipHorizontal,
                         onFlipV = viewModel::flipVertical,
-                        onToggleTorch = { viewModel.setTorch(!cameraState.torchOn) },
+                        onToggleTorch = { viewModel.setTorch(!state.torchOn) },
                         onToggleGrid = viewModel::toggleGrid,
                         onResetView = viewModel::resetView,
                         onCycleFilter = {
@@ -471,4 +494,61 @@ fun TraceScreen(
             }
         }
     }
+}
+
+/**
+ * ARCore viewfinder: a plain TextureView fed by the shared-camera session.
+ * Center-crop fill matches the CameraX PreviewView behaviour.
+ */
+@Composable
+private fun ArCameraPreview(
+    previewSize: Pair<Int, Int>?,
+    onSurfaceReady: (SurfaceTexture, Int, Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.ui.viewinterop.AndroidView(
+        factory = { ctx ->
+            TextureView(ctx).apply {
+                surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                    override fun onSurfaceTextureAvailable(
+                        texture: SurfaceTexture,
+                        width: Int,
+                        height: Int,
+                    ) {
+                        onSurfaceReady(texture, width, height)
+                    }
+
+                    override fun onSurfaceTextureSizeChanged(
+                        texture: SurfaceTexture,
+                        width: Int,
+                        height: Int,
+                    ) = Unit
+
+                    override fun onSurfaceTextureDestroyed(texture: SurfaceTexture) = true
+
+                    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) = Unit
+                }
+            }
+        },
+        update = { view ->
+            val size = previewSize
+            if (size != null && view.width > 0 && view.height > 0) {
+                val (bufferW, bufferH) = size
+                val scale = maxOf(
+                    view.width / bufferW.toFloat(),
+                    view.height / bufferH.toFloat(),
+                )
+                view.setTransform(
+                    Matrix().apply {
+                        setScale(scale, scale)
+                        postTranslate(
+                            (view.width - bufferW * scale) / 2f,
+                            (view.height - bufferH * scale) / 2f,
+                        )
+                    },
+                )
+            }
+        },
+        modifier = modifier,
+    )
 }
