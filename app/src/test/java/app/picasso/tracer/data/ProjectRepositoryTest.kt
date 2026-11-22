@@ -3,13 +3,18 @@ package app.picasso.tracer.data
 import app.picasso.tracer.data.local.ProjectDao
 import app.picasso.tracer.data.local.ProjectEntity
 import app.picasso.tracer.domain.model.OverlayTransform
+import app.picasso.tracer.domain.model.PicassoSettings
+import app.picasso.tracer.domain.model.ThemeMode
 import app.picasso.tracer.domain.model.TraceFilter
+import app.picasso.tracer.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -38,9 +43,32 @@ private class FakeProjectDao : ProjectDao {
     }
 }
 
+/** In-memory settings so creation defaults are tested without DataStore. */
+private class FakeSettingsRepository(
+    initial: PicassoSettings = PicassoSettings(),
+) : SettingsRepository {
+    private val state = MutableStateFlow(initial)
+    override val settings: Flow<PicassoSettings> = state.asStateFlow()
+
+    override suspend fun setThemeMode(mode: ThemeMode) {
+        state.update { it.copy(themeMode = mode) }
+    }
+
+    override suspend fun setDefaultOpacity(opacity: Float) {
+        state.update { it.copy(defaultOpacity = opacity) }
+    }
+
+    override suspend fun setDefaultGrid(rows: Int, cols: Int) {
+        state.update { it.copy(defaultGridRows = rows, defaultGridCols = cols) }
+    }
+}
+
 class ProjectRepositoryTest {
 
-    private fun repository(): ProjectRepositoryImpl = ProjectRepositoryImpl(FakeProjectDao())
+    private fun repository(
+        settings: PicassoSettings = PicassoSettings(),
+    ): ProjectRepositoryImpl =
+        ProjectRepositoryImpl(FakeProjectDao(), FakeSettingsRepository(settings))
 
     @Test
     fun `create then get round-trips overlay state`() = runTest {
@@ -114,10 +142,51 @@ class ProjectRepositoryTest {
     fun `unknown filter names fall back to original`() = runTest {
         val dao = FakeProjectDao()
         dao.upsert(ProjectEntity(imagePath = "/x.jpg", name = "X", createdAt = 1, updatedAt = 2, filter = "NOPE"))
-        val repo = ProjectRepositoryImpl(dao)
+        val repo = ProjectRepositoryImpl(dao, FakeSettingsRepository())
 
         val project = repo.getProject(1)!!
 
         assertEquals(TraceFilter.ORIGINAL, project.filter)
+    }
+
+    @Test
+    fun `favorite round-trips through update`() = runTest {
+        val repo = repository()
+        val id = repo.createProject("/img/a.jpg", "A")
+        assertFalse(repo.getProject(id)!!.favorite)
+
+        repo.updateProject(repo.getProject(id)!!.copy(favorite = true))
+
+        assertTrue(repo.getProject(id)!!.favorite)
+    }
+
+    @Test
+    fun `setFavorite preserves updatedAt`() = runTest {
+        val repo = repository()
+        val first = repo.createProject("/img/a.jpg", "A")
+        repo.createProject("/img/b.jpg", "B")
+        val before = repo.getProject(first)!!.updatedAt
+
+        repo.setFavorite(first, true)
+        repo.setFavorite(first, false)
+
+        val reloaded = repo.getProject(first)!!
+        assertFalse(reloaded.favorite)
+        assertEquals(before, reloaded.updatedAt)
+        // The DAO sorts by updatedAt, so an untouched timestamp keeps list order.
+        assertEquals(2, repo.observeProjects().first().size)
+    }
+
+    @Test
+    fun `createProject honors settings defaults`() = runTest {
+        val repo = repository(
+            PicassoSettings(defaultOpacity = 0.8f, defaultGridRows = 5, defaultGridCols = 6),
+        )
+
+        val project = repo.getProject(repo.createProject("/img/a.jpg", "A"))!!
+
+        assertEquals(0.8f, project.opacity, 0.001f)
+        assertEquals(5, project.gridRows)
+        assertEquals(6, project.gridCols)
     }
 }
