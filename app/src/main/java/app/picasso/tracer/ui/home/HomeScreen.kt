@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -72,6 +73,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import android.app.Activity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -104,6 +106,9 @@ fun HomeScreen(
     val favoritesOnly by viewModel.favoritesOnly.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val haptics = LocalHapticFeedback.current
+    val showAds by viewModel.showAds.collectAsState()
+    val activity = context as? Activity
+    LaunchedEffect(Unit) { activity?.let { viewModel.ads.ensureConsent(it) } }
     val untitled = stringResource(R.string.project_untitled)
 
     var deleting by remember { mutableStateOf<Project?>(null) }
@@ -158,6 +163,19 @@ fun HomeScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            if (showAds) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AdBanner(
+                        visible = true,
+                        adRequest = viewModel.ads::adRequest,
+                    )
+                }
+            }
+        },
     ) { padding ->
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),

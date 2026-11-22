@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import app.picasso.tracer.ui.home.AdBanner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -61,11 +62,15 @@ fun SettingsScreen(
     val settings by viewModel.settings.collectAsState()
     val errorRes by viewModel.errorRes.collectAsState()
     val proPrice by viewModel.proPrice.collectAsState()
-    LaunchedEffect(Unit) { viewModel.loadProPrice() }
+    val adsReady by viewModel.adsReady.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     val activity = context as? android.app.Activity
     var confirmDelete by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        viewModel.loadProPrice()
+        activity?.let { viewModel.ensureAdsConsent(it) }
+    }
     LaunchedEffect(errorRes) {
         errorRes?.let {
             snackbar.showSnackbar(context.getString(it))
@@ -179,6 +184,10 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            AdBanner(
+                visible = adsReady && !settings.proUnlocked,
+                adRequest = viewModel.ads::adRequest,
+            )
             Spacer(Modifier.height(24.dp))
         }
     }

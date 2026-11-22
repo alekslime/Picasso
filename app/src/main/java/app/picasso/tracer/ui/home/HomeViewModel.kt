@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import app.picasso.tracer.R
 import app.picasso.tracer.data.ImageStore
 import app.picasso.tracer.data.Sample
+import app.picasso.tracer.domain.repository.SettingsRepository
+import app.picasso.tracer.monetization.Ads
 import app.picasso.tracer.data.Samples
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.repository.ProjectRepository
@@ -36,7 +38,16 @@ data class SampleItem(
 class HomeViewModel @Inject constructor(
     private val repository: ProjectRepository,
     private val imageStore: ImageStore,
+    settings: SettingsRepository,
+    val ads: Ads,
 ) : ViewModel() {
+
+    /** Banners show only for non-Pro users after UMP consent. Never on camera. */
+    val showAds: StateFlow<Boolean> = combine(
+        settings.settings,
+        ads.ready,
+    ) { s, ready -> !s.proUnlocked && ready }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     val projects: StateFlow<List<Project>> = repository.observeProjects()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

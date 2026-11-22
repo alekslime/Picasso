@@ -7,6 +7,7 @@ import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.PicassoSettings
 import app.picasso.tracer.domain.model.ThemeMode
 import app.picasso.tracer.domain.repository.SettingsRepository
+import app.picasso.tracer.monetization.Ads
 import app.picasso.tracer.monetization.GoogleAuth
 import app.picasso.tracer.monetization.ProBilling
 import app.picasso.tracer.monetization.ProEvent
@@ -25,7 +26,14 @@ class SettingsViewModel @Inject constructor(
     private val repository: SettingsRepository,
     private val googleAuth: GoogleAuth,
     private val proBilling: ProBilling,
+    val ads: Ads,
 ) : ViewModel() {
+
+    val adsReady: StateFlow<Boolean> = ads.ready
+
+    fun ensureAdsConsent(activity: Activity) {
+        ads.ensureConsent(activity)
+    }
 
     init {
         proBilling.connect()
