@@ -30,6 +30,13 @@ data class OverlayTransform(
         )
     }
 
+    /** Composes a live anchor drift (AR mode) over the user-placed base. */
+    fun withDrift(driftX: Float, driftY: Float, driftRotationDeg: Float): OverlayTransform = copy(
+        offsetX = offsetX + driftX,
+        offsetY = offsetY + driftY,
+        rotationDeg = normalizeDegrees(rotationDeg + driftRotationDeg),
+    )
+
     fun toggledFlipH() = copy(flipH = !flipH)
 
     fun toggledFlipV() = copy(flipV = !flipV)
