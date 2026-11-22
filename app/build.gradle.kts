@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.exifinterface)
     implementation(libs.coroutines.core)
+    implementation(libs.datastore.preferences)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
