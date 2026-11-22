@@ -11,6 +11,12 @@ import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -23,12 +29,14 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -43,7 +51,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -114,6 +124,8 @@ fun TraceScreen(
     val recordingElapsedSec by viewModel.recordingElapsedSec.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     var showAudioDialog by remember { mutableStateOf(false) }
+    var panelVisible by remember { mutableStateOf(true) }
+    val haptics = LocalHapticFeedback.current
 
     val noticeRes = state.noticeRes
     LaunchedEffect(noticeRes) {
@@ -137,6 +149,7 @@ fun TraceScreen(
     }
 
     fun onRecordToggle() {
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
         if (cameraState.recording) {
             viewModel.stopRecording()
             return
@@ -176,22 +189,24 @@ fun TraceScreen(
                 val stepActive = state.stepIndex != null
                 val filtered = state.filteredBitmap?.takeIf { !stepActive && state.filter.needsBitmap() }
                 val stepOrFiltered = stepBitmap ?: filtered
-                OverlayImage(
-                    content = stepOrFiltered?.let { OverlayContent.Pixels(it) }
-                        ?: OverlayContent.FileImage(File(project.imagePath)),
-                    transform = state.transform,
-                    opacity = state.opacity,
-                    locked = state.locked,
-                    // Light tuning applies on top of everything, including step layers.
-                    colorFilter = remember(state.filter, state.brightness, state.contrast, stepActive) {
-                        GpuFilters.colorFilterFor(
-                            if (stepActive) TraceFilter.ORIGINAL else state.filter,
-                            state.brightness,
-                            state.contrast,
-                        )
-                    },
-                    onGesture = viewModel::onOverlayGesture,
-                )
+                // Crossfade only on content/filter/step switches, never on gestures
+                // or slider drags: each slot renders its own key, transform stays live.
+                val overlayContent = stepOrFiltered?.let { OverlayContent.Pixels(it) }
+                    ?: OverlayContent.FileImage(File(project.imagePath))
+                val effectiveFilter = if (stepActive) TraceFilter.ORIGINAL else state.filter
+                Crossfade(targetState = overlayContent to effectiveFilter, label = "overlay") { (content, filter) ->
+                    OverlayImage(
+                        content = content,
+                        transform = state.transform,
+                        opacity = state.opacity,
+                        locked = state.locked,
+                        // Light tuning applies on top of everything, including step layers.
+                        colorFilter = remember(filter, state.brightness, state.contrast) {
+                            GpuFilters.colorFilterFor(filter, state.brightness, state.contrast)
+                        },
+                        onGesture = viewModel::onOverlayGesture,
+                    )
+                }
             }
             if (state.gridVisible) {
                 ProportionGrid(rows = state.gridRows, columns = state.gridCols)
@@ -225,7 +240,10 @@ fun TraceScreen(
             if (cameraState.recording) {
                 RecordingPill(
                     elapsedSec = recordingElapsedSec,
-                    onStop = viewModel::stopRecording,
+                    onStop = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.stopRecording()
+                    },
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .statusBarsPadding()
@@ -241,6 +259,24 @@ fun TraceScreen(
                     .padding(top = 56.dp),
             )
 
+            val panelModifier = if (landscape) {
+                Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(8.dp)
+                    .widthIn(max = 320.dp)
+            } else {
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(8.dp)
+                    .fillMaxWidth()
+            }
+            AnimatedVisibility(
+                visible = panelVisible,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+                modifier = panelModifier,
+            ) {
             TraceControls(
                 opacity = state.opacity,
                 locked = state.locked,
@@ -251,6 +287,7 @@ fun TraceScreen(
                 onFlipV = viewModel::flipVertical,
                 onToggleTorch = { viewModel.setTorch(!cameraState.torchOn) },
                 onResetView = viewModel::resetView,
+                onCollapse = { panelVisible = false },
                 extraContent = {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -294,19 +331,21 @@ fun TraceScreen(
                         )
                     }
                 },
-                modifier = if (landscape) {
-                    Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(8.dp)
-                        .widthIn(max = 320.dp)
-                } else {
-                    Modifier
-                        .align(Alignment.BottomCenter)
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (!panelVisible) {
+                SmallFloatingActionButton(
+                    onClick = { panelVisible = true },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
                         .navigationBarsPadding()
-                        .padding(8.dp)
-                        .fillMaxWidth()
-                },
-            )
+                        .padding(16.dp),
+                ) {
+                    Icon(Icons.Default.Tune, contentDescription = stringResource(R.string.expand_panel))
+                }
+            }
 
             if (showAudioDialog) {
                 AlertDialog(
