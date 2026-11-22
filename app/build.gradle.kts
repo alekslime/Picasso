@@ -20,6 +20,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // Release signing comes from the environment so no secrets live in the repo.
+        // Local dev builds stay unsigned; CI injects PICASSO_KEYSTORE_* secrets.
+        // One-time setup: see README "Play Store release signing".
+        create("release") {
+            val keystoreFile = System.getenv("PICASSO_KEYSTORE_FILE")
+            if (!keystoreFile.isNullOrBlank()) {
+                storeFile = file(keystoreFile)
+                storePassword = System.getenv("PICASSO_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("PICASSO_KEY_ALIAS")
+                keyPassword = System.getenv("PICASSO_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -27,6 +42,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Unsigned locally; CI signs with the upload key (see signingConfigs above).
+            if (System.getenv("PICASSO_KEYSTORE_FILE") != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
