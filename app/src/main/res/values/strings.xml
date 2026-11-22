@@ -62,6 +62,14 @@
     <string name="new_project_defaults">New tracing defaults</string>
     <string name="default_opacity">Overlay opacity</string>
     <string name="settings_about">Camera stays on this device. No photos are taken without you asking.</string>
+    <string name="account">Account</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="sign_out">Sign out</string>
+    <string name="delete_account">Delete account</string>
+    <string name="delete_account_title">Delete account?</string>
+    <string name="delete_account_text">This removes your stored profile from this device. Your tracings stay on the device until you clear app data.</string>
+    <string name="sign_in_failed">Sign-in failed — try again</string>
+    <string name="sign_in_not_configured">Sign-in is not set up in this build yet</string>
 
     <!-- Trace screen -->
     <string name="opacity">Opacity</string>

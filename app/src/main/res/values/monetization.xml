@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Monetization setup (see README "Monetization setup"). All values are
+         yours to fill; the app compiles and runs with the placeholders. -->
+    <!-- OAuth *Web* client ID for Google sign-in (Cloud Console → Credentials).
+         NOT the Android client ID. With the placeholder, sign-in is disabled. -->
+    <string name="google_server_client_id" translatable="false">REPLACE_WITH_WEB_CLIENT_ID</string>
+
+    <!-- One-time Pro product created in Play Console → Monetize → Products. -->
+    <string name="pro_product_id" translatable="false">picasso_pro</string>
+
+    <!-- AdMob IDs. Demo values show test ads; replace with yours before release.
+         https://developers.google.com/admob/android/test-ads -->
+    <string name="admob_banner_id" translatable="false">ca-app-pub-3940256099942544/6300978111</string>
+</resources>
