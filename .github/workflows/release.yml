@@ -41,6 +41,31 @@ jobs:
       - name: Name the APK after the tag
         run: cp app/build/outputs/apk/debug/app-debug.apk "Picasso-${GITHUB_REF_NAME}.apk"
 
+      # Play Store artifact. Only runs once the upload-key secrets below exist
+      # in the repo settings (see README "Play Store release signing").
+      # Without them the step is skipped and the GitHub Release still ships.
+      - name: Restore upload keystore
+        if: ${{ secrets.PICASSO_KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.PICASSO_KEYSTORE_BASE64 }}" | base64 -d > /tmp/picasso-upload.jks
+
+      - name: Build signed release bundle
+        if: ${{ secrets.PICASSO_KEYSTORE_BASE64 != '' }}
+        env:
+          PICASSO_KEYSTORE_FILE: /tmp/picasso-upload.jks
+          PICASSO_KEYSTORE_PASSWORD: ${{ secrets.PICASSO_KEYSTORE_PASSWORD }}
+          PICASSO_KEY_ALIAS: ${{ secrets.PICASSO_KEY_ALIAS }}
+          PICASSO_KEY_PASSWORD: ${{ secrets.PICASSO_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --stacktrace
+
+      - name: Upload release bundle for Play Console
+        if: ${{ secrets.PICASSO_KEYSTORE_BASE64 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Picasso-${{ github.ref_name }}-aab
+          path: app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
