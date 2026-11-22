@@ -6,7 +6,9 @@ import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.domain.repository.ProjectRepository
+import app.picasso.tracer.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,6 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class ProjectRepositoryImpl @Inject constructor(
     private val dao: ProjectDao,
+    private val settings: SettingsRepository,
 ) : ProjectRepository {
 
     override fun observeProjects(): Flow<List<Project>> =
@@ -24,18 +27,26 @@ class ProjectRepositoryImpl @Inject constructor(
 
     override suspend fun createProject(imagePath: String, name: String): Long {
         val now = System.currentTimeMillis()
+        val defaults = settings.settings.first()
         return dao.upsert(
             ProjectEntity(
                 imagePath = imagePath,
                 name = name,
                 createdAt = now,
                 updatedAt = now,
+                opacity = defaults.defaultOpacity,
+                gridRows = defaults.defaultGridRows,
+                gridCols = defaults.defaultGridCols,
             ),
         )
     }
 
     override suspend fun updateProject(project: Project) {
         dao.upsert(project.toEntity(updatedAt = System.currentTimeMillis()))
+    }
+
+    override suspend fun setFavorite(id: Long, favorite: Boolean) {
+        dao.getById(id)?.copy(favorite = favorite)?.let { dao.upsert(it) }
     }
 
     override suspend fun deleteProject(id: Long) {
@@ -62,6 +73,7 @@ fun ProjectEntity.toDomain(): Project = Project(
     gridVisible = gridVisible,
     gridRows = gridRows,
     gridCols = gridCols,
+    favorite = favorite,
 )
 
 fun Project.toEntity(updatedAt: Long): ProjectEntity = ProjectEntity(
@@ -81,4 +93,5 @@ fun Project.toEntity(updatedAt: Long): ProjectEntity = ProjectEntity(
     gridVisible = gridVisible,
     gridRows = gridRows,
     gridCols = gridCols,
+    favorite = favorite,
 )
