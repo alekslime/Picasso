@@ -17,8 +17,8 @@ fun ProportionGrid(
 ) {
     Canvas(modifier = modifier.fillMaxSize()) {
         val stroke = 2.dp.toPx()
-        val line = Color.White.copy(alpha = 0.65f)
-        val shadow = Color.Black.copy(alpha = 0.35f)
+        val line = Color(0xFFF1EBDD).copy(alpha = 0.38f)
+        val shadow = Color.Black.copy(alpha = 0.22f)
         for (i in 1 until columns) {
             val x = size.width * i / columns
             drawLine(shadow, Offset(x + stroke, 0f), Offset(x + stroke, size.height), stroke * 2f)

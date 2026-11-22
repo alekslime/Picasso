@@ -1,31 +1,33 @@
 package app.picasso.tracer.ui.permission
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 
-/** Rationale shown before/during the camera permission request. */
+/**
+ * Rationale shown before/during the camera permission request.
+ * Figma: left-aligned Ink/Paper layout, camera preview placeholder,
+ * 52dp Ochre primary action at 20dp screen padding.
+ */
 @Composable
 fun CameraPermissionScreen(
     permanentlyDenied: Boolean,
@@ -33,33 +35,16 @@ fun CameraPermissionScreen(
     onOpenSettings: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .padding(bottom = 20.dp)
-                .size(72.dp)
-                .background(
-                    MaterialTheme.colorScheme.secondaryContainer,
-                    CircleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Default.Videocam,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(32.dp),
-            )
-        }
+        Spacer(Modifier.height(96.dp))
         Text(
             stringResource(R.string.camera_permission_title),
             style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             stringResource(
                 if (permanentlyDenied) R.string.camera_permission_denied
@@ -67,10 +52,39 @@ fun CameraPermissionScreen(
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(24.dp))
-        Button(onClick = if (permanentlyDenied) onOpenSettings else onGrant) {
+        Spacer(Modifier.height(32.dp))
+        // Preview placeholder echoing the trace viewfinder.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp)
+                .clip(MaterialTheme.shapes.large)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        ) {
+            Text(
+                stringResource(R.string.permission_preview_label),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(16.dp),
+            )
+            Icon(
+                Icons.Default.Videocam,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .height(40.dp),
+            )
+        }
+        Spacer(Modifier.height(32.dp))
+        Button(
+            onClick = if (permanentlyDenied) onOpenSettings else onGrant,
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+        ) {
             Text(
                 stringResource(
                     if (permanentlyDenied) R.string.open_settings
@@ -78,9 +92,18 @@ fun CameraPermissionScreen(
                 ),
             )
         }
+        Spacer(Modifier.height(16.dp))
+        Text(
+            stringResource(R.string.camera_permission_reassurance),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
         if (permanentlyDenied) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onGrant) {
+            TextButton(
+                onClick = onGrant,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
                 Text(stringResource(R.string.camera_permission_grant))
             }
         }

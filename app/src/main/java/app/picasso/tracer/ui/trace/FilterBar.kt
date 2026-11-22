@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.TraceFilter
+import app.picasso.tracer.ui.theme.PicassoPaper
+import app.picasso.tracer.ui.theme.PicassoPaperMuted
 
 @Composable
 fun FilterBar(
@@ -31,15 +31,20 @@ fun FilterBar(
     onSelect: (TraceFilter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        FilterChipItem(TraceFilter.ORIGINAL, R.string.filter_original, selected, onSelect)
-        FilterChipItem(TraceFilter.GRAYSCALE, R.string.filter_grayscale, selected, onSelect)
-        FilterChipItem(TraceFilter.HIGH_CONTRAST, R.string.filter_contrast, selected, onSelect)
-        FilterChipItem(TraceFilter.EDGES, R.string.filter_edges, selected, onSelect)
-        FilterChipItem(TraceFilter.POSTERIZE, R.string.filter_posterize, selected, onSelect)
+    Column(modifier = modifier) {
+        PicassoSectionLabel(stringResource(R.string.filters).uppercase())
+        Row(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChipItem(TraceFilter.ORIGINAL, R.string.filter_original, selected, onSelect)
+            FilterChipItem(TraceFilter.GRAYSCALE, R.string.filter_grayscale, selected, onSelect)
+            FilterChipItem(TraceFilter.HIGH_CONTRAST, R.string.filter_contrast, selected, onSelect)
+            FilterChipItem(TraceFilter.EDGES, R.string.filter_edges, selected, onSelect)
+            FilterChipItem(TraceFilter.POSTERIZE, R.string.filter_posterize, selected, onSelect)
+        }
     }
 }
 
@@ -50,10 +55,10 @@ private fun FilterChipItem(
     selected: TraceFilter,
     onSelect: (TraceFilter) -> Unit,
 ) {
-    FilterChip(
+    PicassoFilterChip(
         selected = selected == filter,
         onClick = { onSelect(filter) },
-        label = { Text(stringResource(labelRes)) },
+        label = stringResource(labelRes),
     )
 }
 
@@ -68,16 +73,11 @@ fun GridBar(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            FilterChip(
-                selected = visible,
-                onClick = onToggle,
-                label = { Text(stringResource(R.string.grid)) },
-                leadingIcon = {
-                    Icon(Icons.Default.GridOn, contentDescription = null)
-                },
-            )
-        }
+        PicassoFilterChip(
+            selected = visible,
+            onClick = onToggle,
+            label = "${stringResource(R.string.grid)}  $rows × $columns",
+        )
         if (visible) {
             Column(modifier = Modifier.padding(top = 4.dp)) {
                 Stepper(
@@ -108,19 +108,20 @@ private fun Stepper(
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = PicassoPaperMuted,
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = { onValue(value - 1) }) {
-            Icon(Icons.Default.Remove, contentDescription = null)
+            Icon(Icons.Default.Remove, contentDescription = null, tint = PicassoPaper)
         }
         Text(
             "$value",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.labelMedium,
+            color = PicassoPaper,
             modifier = Modifier.widthIn(min = 20.dp),
         )
         IconButton(onClick = { onValue(value + 1) }) {
-            Icon(Icons.Default.Add, contentDescription = null)
+            Icon(Icons.Default.Add, contentDescription = null, tint = PicassoPaper)
         }
     }
 }

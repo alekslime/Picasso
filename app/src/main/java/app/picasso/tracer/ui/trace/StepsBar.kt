@@ -6,7 +6,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowLeft
 import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.filled.FormatListNumbered
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,10 +34,10 @@ fun StepsBar(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         modifier = modifier,
     ) {
-        FilterChip(
+        PicassoFilterChip(
             selected = active,
             onClick = onToggle,
-            label = { Text(stringResource(R.string.steps)) },
+            label = stringResource(R.string.steps),
             leadingIcon = { Icon(Icons.Default.FormatListNumbered, contentDescription = null) },
         )
         if (active && steps.isNotEmpty()) {
@@ -55,7 +54,7 @@ fun StepsBar(
             Text(
                 stringResource(steps[stepIndex.coerceIn(steps.indices)].nameRes),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = app.picasso.tracer.ui.theme.PicassoPaperMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),

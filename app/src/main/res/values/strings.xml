@@ -5,6 +5,7 @@
 
     <!-- Home -->
     <string name="home_title">Picasso</string>
+    <string name="trace_readout">TRACE</string>
     <string name="pick_image">Pick image</string>
     <string name="take_photo">Take photo</string>
     <string name="recent_projects">Recent projects</string>
@@ -48,6 +49,7 @@
     <string name="theme_dark">Dark</string>
     <string name="new_project_defaults">New tracing defaults</string>
     <string name="default_opacity">Overlay opacity</string>
+    <string name="settings_about">Camera stays on this device. No photos are taken without you asking.</string>
 
     <!-- Trace screen -->
     <string name="opacity">Opacity</string>
@@ -106,6 +108,8 @@
     <string name="camera_permission_grant">Allow camera</string>
     <string name="camera_permission_denied">Camera permission was denied. You can enable it in the system settings to keep tracing.</string>
     <string name="open_settings">Open settings</string>
+    <string name="permission_preview_label">REFERENCE  ·  50%</string>
+    <string name="camera_permission_reassurance">No photos are taken without you asking.</string>
     <string name="audio_permission_text">Microphone access lets your time-lapse recordings include sound. You can decline and still record silent video.</string>
     <string name="audio_permission_grant">Allow microphone</string>
     <string name="skip">Skip</string>

@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessMedium
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,10 +36,10 @@ fun LightBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            FilterChip(
+            PicassoFilterChip(
                 selected = expanded,
                 onClick = onToggle,
-                label = { Text(stringResource(R.string.light)) },
+                label = stringResource(R.string.light),
                 leadingIcon = { Icon(Icons.Default.BrightnessMedium, contentDescription = null) },
             )
             if (expanded && (brightness != 0f || contrast != 1f)) {
@@ -81,10 +79,10 @@ private fun LightSlider(
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = app.picasso.tracer.ui.theme.PicassoPaperMuted,
             modifier = Modifier.widthIn(min = 76.dp),
         )
-        Slider(
+        PicassoSlider(
             value = value,
             onValueChange = onValue,
             valueRange = range,
@@ -93,7 +91,7 @@ private fun LightSlider(
         Text(
             valueLabel,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = app.picasso.tracer.ui.theme.PicassoPaper,
             modifier = Modifier.widthIn(min = 52.dp),
         )
     }

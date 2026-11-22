@@ -4,10 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Compare
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,19 +27,19 @@ fun StrobeBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier,
     ) {
-        FilterChip(
+        PicassoFilterChip(
             selected = enabled,
             onClick = onToggle,
-            label = { Text(stringResource(R.string.strobe)) },
+            label = stringResource(R.string.strobe),
             leadingIcon = { Icon(Icons.Default.Compare, contentDescription = null) },
         )
         if (enabled) {
             Text(
                 stringResource(R.string.strobe_speed),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = app.picasso.tracer.ui.theme.PicassoPaperMuted,
             )
-            Slider(
+            PicassoSlider(
                 value = hz,
                 onValueChange = onHz,
                 valueRange = 0.5f..4f,

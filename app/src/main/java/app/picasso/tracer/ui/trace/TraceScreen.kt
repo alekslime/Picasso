@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Tune
@@ -66,6 +68,11 @@ import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.filters.GpuFilters
 import app.picasso.tracer.ui.permission.CameraPermissionScreen
+import app.picasso.tracer.ui.theme.PicassoBlack
+import app.picasso.tracer.ui.theme.PicassoOchre
+import app.picasso.tracer.ui.theme.PicassoInk
+import app.picasso.tracer.ui.theme.PicassoPaper
+import app.picasso.tracer.ui.theme.PicassoPaperMuted
 import java.io.File
 
 @Composable
@@ -227,7 +234,8 @@ fun TraceScreen(
             FilledIconButton(
                 onClick = onBack,
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                    containerColor = PicassoBlack.copy(alpha = 0.65f),
+                    contentColor = PicassoPaper,
                 ),
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -235,6 +243,28 @@ fun TraceScreen(
                     .padding(8.dp),
             ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+            }
+
+            // Figma top readout: TRACE + active filter, mono, top-end over the camera.
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(12.dp)
+                    .background(PicassoBlack.copy(alpha = 0.45f), CircleShape)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    stringResource(R.string.trace_readout),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PicassoPaperMuted,
+                )
+                Text(
+                    state.filter.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PicassoPaper,
+                )
             }
 
             if (cameraState.recording) {
@@ -337,7 +367,8 @@ fun TraceScreen(
             if (!panelVisible) {
                 SmallFloatingActionButton(
                     onClick = { panelVisible = true },
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    containerColor = PicassoOchre,
+                    contentColor = PicassoInk,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .navigationBarsPadding()

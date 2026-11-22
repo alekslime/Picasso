@@ -267,7 +267,7 @@ fun HomeScreen(
                                 }
                             },
                             singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f),
                         )
                         SortMenu(sort = sort, onSort = viewModel::setSort)
@@ -353,7 +353,7 @@ private fun NewTracingRow(
     ) {
         Button(
             onClick = onPick,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).height(52.dp),
             enabled = !creating,
         ) {
             Icon(Icons.Default.PhotoLibrary, contentDescription = null)
@@ -362,7 +362,7 @@ private fun NewTracingRow(
         }
         FilledTonalButton(
             onClick = onCapture,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).height(52.dp),
             enabled = !creating,
         ) {
             Icon(Icons.Default.AddAPhoto, contentDescription = null)
@@ -399,9 +399,9 @@ private fun ResumeCard(
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    stringResource(R.string.continue_last),
+                    stringResource(R.string.continue_last).uppercase(),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     project.name,

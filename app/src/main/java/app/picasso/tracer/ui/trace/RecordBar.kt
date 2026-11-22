@@ -9,10 +9,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
@@ -28,10 +30,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.camera.formatElapsed
+import app.picasso.tracer.ui.theme.PicassoInk
+import app.picasso.tracer.ui.theme.PicassoOchre
+import app.picasso.tracer.ui.theme.PicassoPaper
 
 @Composable
 fun RecordBar(
@@ -39,14 +43,17 @@ fun RecordBar(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Figma: 52dp Ochre record action, radius 12, Ink label in both states.
     Button(
         onClick = onToggle,
-        colors = if (recording) {
-            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-        } else {
-            ButtonDefaults.buttonColors()
-        },
-        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = PicassoOchre,
+            contentColor = PicassoInk,
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp),
     ) {
         if (recording) {
             Icon(Icons.Default.Stop, contentDescription = null)
@@ -54,7 +61,7 @@ fun RecordBar(
             Spacer(
                 Modifier
                     .size(12.dp)
-                    .background(MaterialTheme.colorScheme.error, CircleShape),
+                    .background(PicassoInk, CircleShape),
             )
         }
         Spacer(Modifier.width(8.dp))
@@ -65,6 +72,7 @@ fun RecordBar(
 /**
  * Persistent recording indicator pinned above the panel: pulsing dot plus elapsed time.
  * Tapping it stops the recording, so REC state survives panel scrolling.
+ * Figma REC pill: deep red Surface pill, mono Paper readout.
  */
 @Composable
 fun RecordingPill(
@@ -82,7 +90,7 @@ fun RecordingPill(
     Surface(
         onClick = onStop,
         shape = CircleShape,
-        color = Color.Black.copy(alpha = 0.65f),
+        color = Color(0xFF8E2F22),
         modifier = modifier,
     ) {
         Row(
@@ -93,19 +101,19 @@ fun RecordingPill(
                 Modifier
                     .size(10.dp)
                     .alpha(pulse)
-                    .background(Color(0xFFFF5252), CircleShape),
+                    .background(PicassoPaper, CircleShape),
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                "REC ${formatElapsed(elapsedSec)}",
-                style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
-                color = Color.White,
+                "REC  ${formatElapsed(elapsedSec)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = PicassoPaper,
             )
             Spacer(Modifier.width(8.dp))
             Icon(
                 Icons.Default.Stop,
                 contentDescription = stringResource(R.string.stop_recording),
-                tint = Color.White,
+                tint = PicassoPaper,
                 modifier = Modifier.size(18.dp),
             )
         }
