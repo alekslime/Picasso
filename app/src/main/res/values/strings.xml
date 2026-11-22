@@ -14,6 +14,40 @@
     <string name="delete_project_confirm">Delete this project? This cannot be undone.</string>
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
+    <string name="settings">Settings</string>
+
+    <!-- Resume + samples -->
+    <string name="continue_last">Continue</string>
+    <string name="try_sample">Try a sample</string>
+    <string name="sample_rose">Rose</string>
+    <string name="sample_eye">Eye</string>
+    <string name="sample_mountains">Mountains</string>
+
+    <!-- Library -->
+    <string name="library">Library</string>
+    <string name="search_projects">Search tracings</string>
+    <string name="filter_all">All</string>
+    <string name="filter_favorites">Favorites</string>
+    <string name="sort">Sort</string>
+    <string name="sort_newest">Newest first</string>
+    <string name="sort_oldest">Oldest first</string>
+    <string name="sort_name">Name A–Z</string>
+    <string name="no_matches">Nothing matches that search.</string>
+    <string name="no_favorites">No favorites yet. Tap the star on any tracing to pin it here.</string>
+    <string name="toggle_favorite">Favorite</string>
+    <string name="project_options">Project options</string>
+    <string name="rename">Rename</string>
+    <string name="rename_project">Rename tracing</string>
+    <string name="rename_hint">Tracing name</string>
+    <string name="save">Save</string>
+
+    <!-- Settings -->
+    <string name="appearance">Appearance</string>
+    <string name="theme_system">System default</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="new_project_defaults">New tracing defaults</string>
+    <string name="default_opacity">Overlay opacity</string>
 
     <!-- Trace screen -->
     <string name="opacity">Opacity</string>
