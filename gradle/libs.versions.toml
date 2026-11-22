@@ -29,6 +29,7 @@ compose-foundation = { group = "androidx.compose.foundation", name = "foundation
 compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
+compose-animation = { group = "androidx.compose.animation", name = "animation" }
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
 camerax-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
 camerax-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
