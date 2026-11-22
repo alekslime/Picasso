@@ -34,6 +34,12 @@
     <string name="back">Back</string>
     <string name="reset_view">Reset view</string>
 
+    <!-- Light -->
+    <string name="light">Light</string>
+    <string name="brightness">Brightness</string>
+    <string name="contrast">Contrast</string>
+    <string name="reset">Reset</string>
+
     <!-- Filters -->
     <string name="filter_original">Original</string>
     <string name="filter_grayscale">Grayscale</string>
