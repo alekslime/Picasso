@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Picasso</string>
+    <string name="tagline">Trace anything, freehand</string>
+
+    <!-- Home -->
+    <string name="home_title">Picasso</string>
+    <string name="pick_image">Pick image</string>
+    <string name="take_photo">Take photo</string>
+    <string name="recent_projects">Recent projects</string>
+    <string name="no_projects">No projects yet. Pick an image to start tracing.</string>
+    <string name="project_untitled">Untitled tracing</string>
+    <string name="delete_project">Delete project</string>
+    <string name="delete_project_confirm">Delete this project? This cannot be undone.</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+
+    <!-- Trace screen -->
+    <string name="opacity">Opacity</string>
+    <string name="lock_overlay">Lock overlay</string>
+    <string name="unlock_overlay">Unlock overlay</string>
+    <string name="flip_horizontal">Flip horizontal</string>
+    <string name="flip_vertical">Flip vertical</string>
+    <string name="toggle_flashlight">Flashlight</string>
+    <string name="filters">Filters</string>
+    <string name="grid">Grid</string>
+    <string name="strobe">Compare flash</string>
+    <string name="strobe_speed">Flash speed</string>
+    <string name="steps">Steps</string>
+    <string name="record">Record</string>
+    <string name="stop_recording">Stop</string>
+    <string name="recording_saved">Recording saved to gallery</string>
+    <string name="recording_failed">Recording failed</string>
+    <string name="back">Back</string>
+    <string name="reset_view">Reset view</string>
+
+    <!-- Filters -->
+    <string name="filter_original">Original</string>
+    <string name="filter_grayscale">Grayscale</string>
+    <string name="filter_contrast">High contrast</string>
+    <string name="filter_edges">Outline</string>
+    <string name="filter_posterize">Value study</string>
+    <string name="preparing_filter">Preparing filter…</string>
+
+    <!-- Grid -->
+    <string name="grid_rows">Rows</string>
+    <string name="grid_columns">Columns</string>
+    <string name="grid_off">Off</string>
+
+    <!-- Steps -->
+    <string name="step_previous">Previous step</string>
+    <string name="step_next">Next step</string>
+    <string name="step_of">Step %1$d of %2$d</string>
+    <string name="preparing_steps">Building steps…</string>
+    <string name="step_block">Big shapes</string>
+    <string name="step_values">Mid values</string>
+    <string name="step_soft">Soft detail</string>
+    <string name="step_outline">Full outline</string>
+    <string name="step_full_image">Full image</string>
+
+    <!-- Permissions -->
+    <string name="camera_permission_title">Camera access needed</string>
+    <string name="camera_permission_text">Picasso shows the live camera view under your reference image so you can trace it. No photos are taken without you asking.</string>
+    <string name="camera_permission_grant">Allow camera</string>
+    <string name="camera_permission_denied">Camera permission was denied. You can enable it in the system settings to keep tracing.</string>
+    <string name="open_settings">Open settings</string>
+    <string name="audio_permission_text">Microphone access lets your time-lapse recordings include sound. You can decline and still record silent video.</string>
+    <string name="audio_permission_grant">Allow microphone</string>
+    <string name="skip">Skip</string>
+
+    <!-- Misc -->
+    <string name="project_not_found">Project not found</string>
+    <string name="loading">Loading…</string>
+    <string name="error_loading_image">Could not load that image</string>
+    <string name="camera_error">Camera unavailable: %1$s</string>
+</resources>

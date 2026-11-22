@@ -1,0 +1,303 @@
+package app.picasso.tracer.ui.trace
+
+import android.graphics.Bitmap
+import androidx.compose.ui.geometry.Offset
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import app.picasso.tracer.R
+import app.picasso.tracer.camera.CameraManager
+import app.picasso.tracer.camera.OverlayAnchor
+import app.picasso.tracer.data.ImageStore
+import app.picasso.tracer.domain.model.OverlayTransform
+import app.picasso.tracer.domain.model.Project
+import app.picasso.tracer.domain.model.TraceFilter
+import app.picasso.tracer.domain.repository.ProjectRepository
+import app.picasso.tracer.filters.FilterProcessor
+import app.picasso.tracer.filters.StepGenerator
+import app.picasso.tracer.filters.StepLayer
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class TraceUiState(
+    val project: Project? = null,
+    val loading: Boolean = true,
+    val errorRes: Int? = null,
+    val transform: OverlayTransform = OverlayTransform.initial(),
+    val opacity: Float = 0.5f,
+    val locked: Boolean = false,
+    val filter: TraceFilter = TraceFilter.ORIGINAL,
+    val filteredBitmap: Bitmap? = null,
+    val filterLoading: Boolean = false,
+    val gridVisible: Boolean = false,
+    val gridRows: Int = 3,
+    val gridCols: Int = 3,
+    val strobeOn: Boolean = false,
+    val strobeHz: Float = 1f,
+    val strobePhase: Boolean = true,
+    val steps: List<StepLayer> = emptyList(),
+    val stepIndex: Int? = null,
+    val stepsLoading: Boolean = false,
+    val noticeRes: Int? = null,
+)
+
+@HiltViewModel
+class TraceViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val repository: ProjectRepository,
+    val cameraManager: CameraManager,
+    private val anchor: OverlayAnchor,
+    private val imageStore: ImageStore,
+    private val filters: FilterProcessor,
+    private val stepGenerator: StepGenerator,
+) : ViewModel() {
+
+    private val projectId: Long = savedStateHandle.get<Long>("projectId") ?: -1L
+
+    private val _uiState = MutableStateFlow(TraceUiState())
+    val uiState: StateFlow<TraceUiState> = _uiState.asStateFlow()
+
+    private var filterJob: Job? = null
+    private var strobeJob: Job? = null
+    private var stepsJob: Job? = null
+
+    val cameraState = cameraManager.state
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), cameraManager.state.value)
+
+    init {
+        viewModelScope.launch {
+            val project = repository.getProject(projectId)
+            if (project == null) {
+                _uiState.update { it.copy(loading = false, errorRes = R.string.project_not_found) }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        project = project,
+                        loading = false,
+                        transform = project.transform,
+                        opacity = project.opacity,
+                        filter = project.filter,
+                        gridVisible = project.gridVisible,
+                        gridRows = project.gridRows,
+                        gridCols = project.gridCols,
+                    )
+                }
+                if (project.filter.needsBitmap()) applyBitmapFilter(project)
+            }
+        }
+        startAutoSave()
+    }
+
+    // Persists overlay state 600ms after the last change. One-way: saving never
+    // writes back into _uiState, so this cannot loop.
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    private fun startAutoSave() {
+        viewModelScope.launch {
+            _uiState.drop(1).debounce(600).collect { state ->
+                persist(state)
+            }
+        }
+    }
+
+    /** Immediate save for screen exit; the debounced saver covers everything else. */
+    fun saveNow() {
+        viewModelScope.launch { persist(_uiState.value) }
+    }
+
+    private suspend fun persist(state: TraceUiState) {
+        val project = state.project ?: return
+        if (state.loading) return
+        runCatching {
+            repository.updateProject(
+                project.copy(
+                    transform = state.transform,
+                    opacity = state.opacity,
+                    filter = state.filter,
+                    gridVisible = state.gridVisible,
+                    gridRows = state.gridRows,
+                    gridCols = state.gridCols,
+                ),
+            )
+        }
+    }
+
+    /** One gesture frame from the overlay; ignored while locked. Classic anchor resolves as-is. */
+    fun onOverlayGesture(pan: Offset, zoom: Float, rotation: Float) {
+        _uiState.update { state ->
+            if (state.locked) return@update state
+            val next = state.transform.applyGesture(pan.x, pan.y, zoom, rotation)
+            state.copy(transform = anchor.resolve(next))
+        }
+    }
+
+    fun setOpacity(opacity: Float) {
+        _uiState.update { it.copy(opacity = opacity.coerceIn(0f, 1f)) }
+    }
+
+    fun toggleLock() {
+        _uiState.update { it.copy(locked = !it.locked) }
+    }
+
+    fun flipHorizontal() {
+        _uiState.update { it.copy(transform = it.transform.toggledFlipH()) }
+    }
+
+    fun flipVertical() {
+        _uiState.update { it.copy(transform = it.transform.toggledFlipV()) }
+    }
+
+    fun resetView() {
+        _uiState.update { it.copy(transform = OverlayTransform.initial(), opacity = 0.5f) }
+    }
+
+    fun setFilter(filter: TraceFilter) {
+        val project = _uiState.value.project ?: return
+        filterJob?.cancel()
+        // Filters and step layers are mutually exclusive views of the reference.
+        if (!filter.needsBitmap()) {
+            _uiState.update {
+                it.copy(filter = filter, filteredBitmap = null, filterLoading = false, stepIndex = null)
+            }
+            return
+        }
+        _uiState.update { it.copy(filter = filter, filterLoading = true, stepIndex = null) }
+        applyBitmapFilter(project)
+    }
+
+    fun toggleSteps() {
+        val state = _uiState.value
+        val project = state.project ?: return
+        if (state.stepIndex != null) {
+            stepsJob?.cancel()
+            _uiState.update { it.copy(stepIndex = null, stepsLoading = false) }
+            return
+        }
+        if (state.steps.isNotEmpty()) {
+            _uiState.update { it.copy(stepIndex = 0) }
+            return
+        }
+        stepsJob?.cancel()
+        _uiState.update { it.copy(stepsLoading = true) }
+        stepsJob = viewModelScope.launch {
+            try {
+                val source = imageStore.loadBitmap(project.imagePath)
+                    ?: throw IllegalStateException("Missing image")
+                val steps = stepGenerator.buildSteps(project.imagePath, source)
+                _uiState.update { it.copy(steps = steps, stepIndex = 0, stepsLoading = false) }
+            } catch (_: Exception) {
+                _uiState.update { it.copy(stepsLoading = false) }
+            }
+        }
+    }
+
+    fun nextStep() {
+        _uiState.update { state ->
+            val index = state.stepIndex ?: return@update state
+            state.copy(stepIndex = (index + 1).coerceAtMost(state.steps.lastIndex))
+        }
+    }
+
+    fun previousStep() {
+        _uiState.update { state ->
+            val index = state.stepIndex ?: return@update state
+            state.copy(stepIndex = (index - 1).coerceAtLeast(0))
+        }
+    }
+
+    private fun applyBitmapFilter(project: Project) {
+        filterJob?.cancel()
+        filterJob = viewModelScope.launch {
+            val filter = _uiState.value.filter
+            try {
+                val source = imageStore.loadBitmap(project.imagePath)
+                    ?: throw IllegalStateException("Missing image")
+                val bitmap = filters.filtered(project.imagePath, source, filter)
+                _uiState.update {
+                    if (it.filter == filter) it.copy(filteredBitmap = bitmap, filterLoading = false)
+                    else it
+                }
+            } catch (_: Exception) {
+                _uiState.update { it.copy(filterLoading = false) }
+            }
+        }
+    }
+
+    fun toggleGrid() {
+        _uiState.update { it.copy(gridVisible = !it.gridVisible) }
+    }
+
+    fun setGridRows(rows: Int) {
+        _uiState.update { it.copy(gridRows = rows.coerceIn(1, 8)) }
+    }
+
+    fun setGridCols(cols: Int) {
+        _uiState.update { it.copy(gridCols = cols.coerceIn(1, 8)) }
+    }
+
+    fun toggleStrobe() {
+        strobeJob?.cancel()
+        strobeJob = null
+        if (_uiState.value.strobeOn) {
+            _uiState.update { it.copy(strobeOn = false, strobePhase = true) }
+            return
+        }
+        _uiState.update { it.copy(strobeOn = true, strobePhase = true) }
+        strobeJob = viewModelScope.launch {
+            // Half-period toggles: full on/off cycle takes 1/hz seconds.
+            while (true) {
+                val hz = _uiState.value.strobeHz.coerceIn(0.5f, 4f)
+                delay((500f / hz).toLong().coerceAtLeast(50L))
+                _uiState.update { it.copy(strobePhase = !it.strobePhase) }
+            }
+        }
+    }
+
+    fun setStrobeHz(hz: Float) {
+        _uiState.update { it.copy(strobeHz = hz.coerceIn(0.5f, 4f)) }
+    }
+
+    fun setTorch(on: Boolean) {
+        cameraManager.setTorch(on)
+    }
+
+    fun startRecording(withAudio: Boolean) {
+        cameraManager.startRecording(
+            fileName = "Picasso-${System.currentTimeMillis()}.mp4",
+            withAudio = withAudio,
+            onSaved = {
+                _uiState.update { it.copy(noticeRes = R.string.recording_saved) }
+            },
+            onError = {
+                _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
+            },
+        )
+    }
+
+    fun stopRecording() {
+        cameraManager.stopRecording()
+    }
+
+    fun notifyRecordingFailed() {
+        _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
+    }
+
+    fun clearNotice() {
+        _uiState.update { it.copy(noticeRes = null) }
+    }
+
+    override fun onCleared() {
+        cameraManager.unbind()
+        super.onCleared()
+    }
+}

@@ -1,0 +1,14 @@
+# Android / Gradle (local & regenerable only; apk/ is intentionally kept)
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/app/release/
+/.cxx/
+captures
+.externalNativeBuild
+.kotlin/
+local.properties
