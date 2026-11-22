@@ -33,6 +33,9 @@ class SettingsRepositoryImpl @Inject constructor(
                 defaultGridCols = prefs[Keys.DEFAULT_GRID_COLS]?.coerceIn(1, 8)
                     ?: PicassoSettings().defaultGridCols,
                 tutorialCompleted = prefs[Keys.TUTORIAL_COMPLETED] ?: false,
+                accountEmail = prefs[Keys.ACCOUNT_EMAIL],
+                accountName = prefs[Keys.ACCOUNT_NAME],
+                proUnlocked = prefs[Keys.PRO_UNLOCKED] ?: false,
             )
         }
 
@@ -48,6 +51,24 @@ class SettingsRepositoryImpl @Inject constructor(
         dataStore.edit { it[Keys.TUTORIAL_COMPLETED] = true }
     }
 
+    override suspend fun setAccount(email: String, name: String) {
+        dataStore.edit {
+            it[Keys.ACCOUNT_EMAIL] = email
+            it[Keys.ACCOUNT_NAME] = name
+        }
+    }
+
+    override suspend fun clearAccount() {
+        dataStore.edit {
+            it.remove(Keys.ACCOUNT_EMAIL)
+            it.remove(Keys.ACCOUNT_NAME)
+        }
+    }
+
+    override suspend fun setProUnlocked(unlocked: Boolean) {
+        dataStore.edit { it[Keys.PRO_UNLOCKED] = unlocked }
+    }
+
     override suspend fun setDefaultGrid(rows: Int, cols: Int) {
         dataStore.edit {
             it[Keys.DEFAULT_GRID_ROWS] = rows.coerceIn(1, 8)
@@ -61,5 +82,8 @@ class SettingsRepositoryImpl @Inject constructor(
         val DEFAULT_GRID_ROWS = intPreferencesKey("default_grid_rows")
         val DEFAULT_GRID_COLS = intPreferencesKey("default_grid_cols")
         val TUTORIAL_COMPLETED = booleanPreferencesKey("tutorial_completed")
+        val ACCOUNT_EMAIL = stringPreferencesKey("account_email")
+        val ACCOUNT_NAME = stringPreferencesKey("account_name")
+        val PRO_UNLOCKED = booleanPreferencesKey("pro_unlocked")
     }
 }

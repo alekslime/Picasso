@@ -65,6 +65,18 @@ private class FakeSettingsRepository(
     override suspend fun setTutorialCompleted() {
         state.update { it.copy(tutorialCompleted = true) }
     }
+
+    override suspend fun setAccount(email: String, name: String) {
+        state.update { it.copy(accountEmail = email, accountName = name) }
+    }
+
+    override suspend fun clearAccount() {
+        state.update { it.copy(accountEmail = null, accountName = null) }
+    }
+
+    override suspend fun setProUnlocked(unlocked: Boolean) {
+        state.update { it.copy(proUnlocked = unlocked) }
+    }
 }
 
 class ProjectRepositoryTest {

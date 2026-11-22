@@ -14,4 +14,10 @@ interface SettingsRepository {
     suspend fun setDefaultGrid(rows: Int, cols: Int)
 
     suspend fun setTutorialCompleted()
+
+    suspend fun setAccount(email: String, name: String)
+
+    suspend fun clearAccount()
+
+    suspend fun setProUnlocked(unlocked: Boolean)
 }

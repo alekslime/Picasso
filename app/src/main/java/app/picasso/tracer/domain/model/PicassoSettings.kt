@@ -15,4 +15,9 @@ data class PicassoSettings(
     val defaultGridCols: Int = 3,
     /** First-trace tutorial: shown until the user finishes or skips it once. */
     val tutorialCompleted: Boolean = false,
+    /** Google account profile stored on-device (sign-in is local-only, no backend). */
+    val accountEmail: String? = null,
+    val accountName: String? = null,
+    /** One-time Pro purchase unlocked (also restored from Play on every connect). */
+    val proUnlocked: Boolean = false,
 )

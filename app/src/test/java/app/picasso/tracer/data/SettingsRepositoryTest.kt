@@ -50,6 +50,22 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun `account and pro flags persist`() = runTest {
+        val repo = repository()
+        assertEquals(null, repo.settings.first().accountEmail)
+        assertEquals(false, repo.settings.first().proUnlocked)
+        repo.setAccount("a@b.c", "Ada")
+        repo.setProUnlocked(true)
+        val s = repo.settings.first()
+        assertEquals("a@b.c", s.accountEmail)
+        assertEquals("Ada", s.accountName)
+        assertEquals(true, s.proUnlocked)
+        repo.clearAccount()
+        assertEquals(null, repo.settings.first().accountEmail)
+        assertEquals(true, repo.settings.first().proUnlocked)
+    }
+
+    @Test
     fun `setters persist and coerce`() = runTest {
         val repo = repository()
 
