@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Tune
@@ -73,6 +74,7 @@ fun CleanTraceDeck(
     onResetView: () -> Unit,
     onCycleFilter: () -> Unit,
     onRecord: () -> Unit,
+    onSave: () -> Unit,
     onExpand: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -178,6 +180,19 @@ fun CleanTraceDeck(
                 "${(opacity * 100).roundToInt()}%",
                 style = MaterialTheme.typography.labelMedium,
                 color = PicassoPaper,
+            )
+        }
+
+        // Save image: the plain still of the current view, saved to the gallery.
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            PicassoFilterChip(
+                selected = false,
+                onClick = onSave,
+                label = stringResource(R.string.save_image),
+                leadingIcon = { Icon(Icons.Default.Save, contentDescription = null) },
             )
         }
 

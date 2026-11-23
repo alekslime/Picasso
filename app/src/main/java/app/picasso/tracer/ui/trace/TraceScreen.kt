@@ -524,6 +524,7 @@ fun TraceScreen(
                             viewModel.setFilter(filters[(state.filter.ordinal + 1) % filters.size])
                         },
                         onRecord = ::onRecordToggle,
+                        onSave = viewModel::saveImage,
                             onExpand = { viewModel.onTutorialExpand(); panelVisible = true },
                         )
                     }

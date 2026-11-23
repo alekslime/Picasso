@@ -89,6 +89,7 @@ data class TraceUiState(
     val timelapseIntervalSec: Int = 10,
     val timelapseCount: Int = 0,
     val beforeAfterSaving: Boolean = false,
+    val stillSaving: Boolean = false,
     val wallMode: Boolean = false,
     val showTutorial: Boolean = false,
     val tutorialStep: Int = 0,
@@ -591,6 +592,33 @@ class TraceViewModel @Inject constructor(
             },
             onError = {
                 _uiState.update { it.copy(beforeAfterSaving = false, noticeRes = R.string.recording_failed) }
+            },
+        )
+    }
+
+    /** Saves the current view to the gallery as a still image. */
+    fun saveImage() {
+        if (_uiState.value.stillSaving) return
+        _uiState.update { it.copy(stillSaving = true) }
+        captureStillFile(
+            onResult = { file ->
+                viewModelScope.launch {
+                    val saved = runCatching {
+                        val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                            ?: error("Missing capture")
+                        imageStore.saveToGallery(bitmap, "still-${System.currentTimeMillis()}.jpg")
+                    }.getOrDefault(false)
+                    runCatching { file.delete() }
+                    _uiState.update {
+                        it.copy(
+                            stillSaving = false,
+                            noticeRes = if (saved) R.string.saved_image else R.string.recording_failed,
+                        )
+                    }
+                }
+            },
+            onError = {
+                _uiState.update { it.copy(stillSaving = false, noticeRes = R.string.recording_failed) }
             },
         )
     }

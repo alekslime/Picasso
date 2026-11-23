@@ -131,6 +131,8 @@
     <string name="timelapse_saved">Timelapse frame saved</string>
     <string name="stop_recording">Stop</string>
     <string name="recording_saved">Recording saved to gallery</string>
+    <string name="save_image">Save image</string>
+    <string name="saved_image">Image saved to gallery</string>
     <string name="recording_failed">Recording failed</string>
     <string name="back">Back</string>
     <string name="reset_view">Reset view</string>
