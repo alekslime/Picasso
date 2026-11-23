@@ -22,6 +22,9 @@ interface ProjectDao {
     @Query("SELECT * FROM layers WHERE projectId = :projectId ORDER BY createdAt ASC")
     fun observeLayers(projectId: Long): Flow<List<LayerEntity>>
 
+    @Query("SELECT * FROM layers WHERE projectId = :projectId")
+    suspend fun getLayers(projectId: Long): List<LayerEntity>
+
     @Upsert
     suspend fun upsertLayer(entity: LayerEntity): Long
 

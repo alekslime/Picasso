@@ -7,6 +7,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import app.picasso.tracer.camera.ClassicAnchor
 import app.picasso.tracer.camera.OverlayAnchor
+import app.picasso.tracer.data.ImageFiles
+import app.picasso.tracer.data.ImageStore
 import app.picasso.tracer.data.ProjectRepositoryImpl
 import app.picasso.tracer.data.SettingsRepositoryImpl
 import app.picasso.tracer.data.local.PicassoDatabase
@@ -36,6 +38,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideProjectDao(db: PicassoDatabase): ProjectDao = db.projectDao()
+
+    @Provides
+    @Singleton
+    fun provideImageFiles(store: ImageStore): ImageFiles = store
 
     @Provides
     @Singleton

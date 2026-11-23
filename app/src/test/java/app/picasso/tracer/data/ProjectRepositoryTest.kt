@@ -1,5 +1,6 @@
 package app.picasso.tracer.data
 
+import app.picasso.tracer.data.local.LayerEntity
 import app.picasso.tracer.data.local.ProjectDao
 import app.picasso.tracer.data.local.ProjectEntity
 import app.picasso.tracer.domain.model.OverlayTransform
@@ -44,23 +45,33 @@ private class FakeProjectDao : ProjectDao {
         layers.update { list -> list.filterNot { it.projectId == id } }
     }
 
-    private val layers = MutableStateFlow<List<app.picasso.tracer.data.local.LayerEntity>>(emptyList())
+    private val layers = MutableStateFlow<List<LayerEntity>>(emptyList())
     private var nextLayerId = 1L
 
     override fun observeLayers(projectId: Long) = layers.map { list ->
         list.filter { it.projectId == projectId }
     }
 
-    override suspend fun upsertLayer(entity: app.picasso.tracer.data.local.LayerEntity): Long {
+    override suspend fun upsertLayer(entity: LayerEntity): Long {
         val id = if (entity.id == 0L) nextLayerId++ else entity.id
         layers.update { list -> list.filterNot { it.id == id } + entity.copy(id = id) }
         return id
     }
 
+    override suspend fun getLayers(projectId: Long) = layers.value.filter { it.projectId == projectId }
+
     override suspend fun getLayerById(id: Long) = layers.value.find { it.id == id }
 
     override suspend fun deleteLayerById(id: Long) {
         layers.update { list -> list.filterNot { it.id == id } }
+    }
+}
+
+/** Records deletions instead of touching the filesystem. */
+private class FakeImageFiles : ImageFiles {
+    val deleted = mutableListOf<String>()
+    override suspend fun delete(path: String) {
+        deleted += path
     }
 }
 
@@ -102,10 +113,12 @@ private class FakeSettingsRepository(
 
 class ProjectRepositoryTest {
 
+    private val files = FakeImageFiles()
+
     private fun repository(
         settings: PicassoSettings = PicassoSettings(),
     ): ProjectRepositoryImpl =
-        ProjectRepositoryImpl(FakeProjectDao(), FakeSettingsRepository(settings))
+        ProjectRepositoryImpl(FakeProjectDao(), FakeSettingsRepository(settings), files)
 
     @Test
     fun `create then get round-trips overlay state`() = runTest {
@@ -179,7 +192,7 @@ class ProjectRepositoryTest {
     fun `unknown filter names fall back to original`() = runTest {
         val dao = FakeProjectDao()
         dao.upsert(ProjectEntity(imagePath = "/x.jpg", name = "X", createdAt = 1, updatedAt = 2, filter = "NOPE"))
-        val repo = ProjectRepositoryImpl(dao, FakeSettingsRepository())
+        val repo = ProjectRepositoryImpl(dao, FakeSettingsRepository(), files)
 
         val project = repo.getProject(1)!!
 
@@ -225,5 +238,43 @@ class ProjectRepositoryTest {
         assertEquals(0.8f, project.opacity, 0.001f)
         assertEquals(5, project.gridRows)
         assertEquals(6, project.gridCols)
+    }
+
+    @Test
+    fun `add and observe layers`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "Sketch")
+        repo.createProject("/img/b.jpg", "B").let { repo.addLayer(it, "/img/other.jpg", "Other") }
+
+        val layers = repo.observeLayers(project).first()
+
+        assertEquals(listOf("Sketch"), layers.map { it.name })
+    }
+
+    @Test
+    fun `deleteLayer removes the row and its image file`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "Sketch")
+        val layer = repo.observeLayers(project).first().single()
+
+        repo.deleteLayer(layer)
+
+        assertTrue(repo.observeLayers(project).first().isEmpty())
+        assertEquals(listOf("/img/l1.jpg"), files.deleted)
+    }
+
+    @Test
+    fun `deleteProject removes its layer image files`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "Sketch")
+        repo.addLayer(project, "/img/l2.jpg", "Values")
+
+        repo.deleteProject(project)
+
+        assertEquals(setOf("/img/l1.jpg", "/img/l2.jpg"), files.deleted.toSet())
+        assertTrue(repo.observeLayers(project).first().isEmpty())
     }
 }

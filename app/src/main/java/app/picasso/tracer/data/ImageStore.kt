@@ -22,7 +22,7 @@ import kotlin.math.max
 @Singleton
 class ImageStore @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : ImageFiles {
     private val dir: File
         get() = File(context.filesDir, "references").apply { mkdirs() }
 
@@ -101,8 +101,8 @@ class ImageStore @Inject constructor(
 
     fun fileFor(path: String): File = File(path)
 
-    suspend fun delete(path: String) = withContext(Dispatchers.IO) {
-        runCatching { File(path).delete() }
+    override suspend fun delete(path: String) {
+        withContext(Dispatchers.IO) { runCatching { File(path).delete() } }
     }
 
     companion object {

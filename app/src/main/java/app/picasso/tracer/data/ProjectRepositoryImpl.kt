@@ -20,6 +20,7 @@ import javax.inject.Singleton
 class ProjectRepositoryImpl @Inject constructor(
     private val dao: ProjectDao,
     private val settings: SettingsRepository,
+    private val imageFiles: ImageFiles,
 ) : ProjectRepository {
 
     override fun observeProjects(): Flow<List<Project>> =
@@ -53,7 +54,10 @@ class ProjectRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteProject(id: Long) {
+        // Layer rows cascade away with the project; read their files first.
+        val layerPaths = dao.getLayers(id).map { it.imagePath }
         dao.deleteById(id)
+        layerPaths.forEach { imageFiles.delete(it) }
     }
 
     override fun observeLayers(projectId: Long): Flow<List<OverlayLayer>> =
@@ -73,6 +77,7 @@ class ProjectRepositoryImpl @Inject constructor(
 
     override suspend fun deleteLayer(layer: OverlayLayer) {
         dao.deleteLayerById(layer.id)
+        imageFiles.delete(layer.imagePath)
     }
 }
 
