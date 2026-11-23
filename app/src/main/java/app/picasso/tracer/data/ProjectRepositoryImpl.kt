@@ -1,7 +1,9 @@
 package app.picasso.tracer.data
 
+import app.picasso.tracer.data.local.LayerEntity
 import app.picasso.tracer.data.local.ProjectDao
 import app.picasso.tracer.data.local.ProjectEntity
+import app.picasso.tracer.domain.model.OverlayLayer
 import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.TraceFilter
@@ -53,7 +55,34 @@ class ProjectRepositoryImpl @Inject constructor(
     override suspend fun deleteProject(id: Long) {
         dao.deleteById(id)
     }
+
+    override fun observeLayers(projectId: Long): Flow<List<OverlayLayer>> =
+        dao.observeLayers(projectId).map { list -> list.map { it.toDomain() } }
+
+    override suspend fun addLayer(projectId: Long, imagePath: String, name: String): Long {
+        val now = System.currentTimeMillis()
+        return dao.upsertLayer(
+            LayerEntity(
+                projectId = projectId,
+                imagePath = imagePath,
+                name = name,
+                createdAt = now,
+            ),
+        )
+    }
+
+    override suspend fun deleteLayer(layer: OverlayLayer) {
+        dao.deleteLayerById(layer.id)
+    }
 }
+
+fun LayerEntity.toDomain(): OverlayLayer = OverlayLayer(
+    id = id,
+    projectId = projectId,
+    imagePath = imagePath,
+    name = name,
+    createdAt = createdAt,
+)
 
 fun ProjectEntity.toDomain(): Project = Project(
     id = id,

@@ -18,4 +18,16 @@ interface ProjectDao {
 
     @Query("DELETE FROM projects WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("SELECT * FROM layers WHERE projectId = :projectId ORDER BY createdAt ASC")
+    fun observeLayers(projectId: Long): Flow<List<LayerEntity>>
+
+    @Upsert
+    suspend fun upsertLayer(entity: LayerEntity): Long
+
+    @Query("SELECT * FROM layers WHERE id = :id")
+    suspend fun getLayerById(id: Long): LayerEntity?
+
+    @Query("DELETE FROM layers WHERE id = :id")
+    suspend fun deleteLayerById(id: Long)
 }

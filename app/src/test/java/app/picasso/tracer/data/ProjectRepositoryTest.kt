@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -40,6 +41,26 @@ private class FakeProjectDao : ProjectDao {
 
     override suspend fun deleteById(id: Long) {
         rows.update { list -> list.filterNot { it.id == id } }
+        layers.update { list -> list.filterNot { it.projectId == id } }
+    }
+
+    private val layers = MutableStateFlow<List<app.picasso.tracer.data.local.LayerEntity>>(emptyList())
+    private var nextLayerId = 1L
+
+    override fun observeLayers(projectId: Long) = layers.map { list ->
+        list.filter { it.projectId == projectId }
+    }
+
+    override suspend fun upsertLayer(entity: app.picasso.tracer.data.local.LayerEntity): Long {
+        val id = if (entity.id == 0L) nextLayerId++ else entity.id
+        layers.update { list -> list.filterNot { it.id == id } + entity.copy(id = id) }
+        return id
+    }
+
+    override suspend fun getLayerById(id: Long) = layers.value.find { it.id == id }
+
+    override suspend fun deleteLayerById(id: Long) {
+        layers.update { list -> list.filterNot { it.id == id } }
     }
 }
 
