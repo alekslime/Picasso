@@ -99,6 +99,13 @@
     <string name="strobe">Compare flash</string>
     <string name="strobe_speed">Flash speed</string>
     <string name="steps">Steps</string>
+    <string name="layers">Layers</string>
+    <string name="layer_base">Base</string>
+    <string name="layer_add">Add</string>
+    <string name="layer_default_name">Layer %1$d</string>
+    <string name="layer_delete">Delete layer</string>
+    <string name="layer_delete_title">Delete %1$s?</string>
+    <string name="layer_delete_confirm">This removes the layer and its image. This cannot be undone.</string>
     <string name="record">Record</string>
     <string name="timelapse">Timelapse</string>
     <string name="before_after">Before / After</string>

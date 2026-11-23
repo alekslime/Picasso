@@ -17,6 +17,7 @@ import app.picasso.tracer.camera.ArAnchor
 import app.picasso.tracer.camera.MotionTracker
 import app.picasso.tracer.camera.OverlayMode
 import app.picasso.tracer.data.ImageStore
+import app.picasso.tracer.domain.model.OverlayLayer
 import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.GuideType
@@ -91,7 +92,15 @@ data class TraceUiState(
     val wallMode: Boolean = false,
     val showTutorial: Boolean = false,
     val tutorialStep: Int = 0,
-)
+    // Extra reference images on this project. Session-only selection: null = base image.
+    val layers: List<OverlayLayer> = emptyList(),
+    val activeLayerId: Long? = null,
+    val layerBusy: Boolean = false,
+) {
+    /** The image the overlay, filters, steps and wall mode currently use. */
+    val activeImagePath: String?
+        get() = layers.firstOrNull { it.id == activeLayerId }?.imagePath ?: project?.imagePath
+}
 
 @HiltViewModel
 class TraceViewModel @Inject constructor(
@@ -152,6 +161,9 @@ class TraceViewModel @Inject constructor(
             }
         }
         startAutoSave()
+        viewModelScope.launch {
+            repository.observeLayers(projectId).collect { layers -> onLayersChanged(layers) }
+        }
         viewModelScope.launch {
             arCore.drift.collect { drift ->
                 arAnchor.update(drift)
@@ -214,6 +226,81 @@ class TraceViewModel @Inject constructor(
                 if (state.recording) startTicker() else stopTicker()
             }
         }
+    }
+
+    private fun onLayersChanged(layers: List<OverlayLayer>) {
+        val state = _uiState.value
+        val activeGone = state.activeLayerId != null && layers.none { it.id == state.activeLayerId }
+        _uiState.update { it.copy(layers = layers) }
+        if (activeGone) showImage(null)
+    }
+
+    /** Adds [source] (picked from the gallery) as a layer on this project and shows it. */
+    fun addLayer(source: android.net.Uri, name: String) {
+        if (_uiState.value.layerBusy) return
+        _uiState.update { it.copy(layerBusy = true) }
+        viewModelScope.launch {
+            try {
+                val path = imageStore.persist(source)
+                val id = try {
+                    repository.addLayer(projectId, path, name)
+                } catch (e: Exception) {
+                    imageStore.delete(path) // do not orphan the copy if the insert failed
+                    throw e
+                }
+                _uiState.update { it.copy(layerBusy = false) }
+                // The row reaches state through observeLayers; selection follows once it does.
+                selectLayerWhenPresent(id)
+            } catch (_: Exception) {
+                _uiState.update { it.copy(layerBusy = false, noticeRes = R.string.error_loading_image) }
+            }
+        }
+    }
+
+    private fun selectLayerWhenPresent(id: Long) {
+        viewModelScope.launch {
+            val present = kotlinx.coroutines.withTimeoutOrNull(2_000) {
+                _uiState.first { state -> state.layers.any { it.id == id } }
+            }
+            if (present != null) selectLayer(id)
+        }
+    }
+
+    /** Shows [layerId], or the project's base image when null. */
+    fun selectLayer(layerId: Long?) {
+        val state = _uiState.value
+        if (layerId == state.activeLayerId) return
+        if (layerId != null && state.layers.none { it.id == layerId }) return
+        showImage(layerId)
+    }
+
+    fun deleteLayer(layer: OverlayLayer) {
+        viewModelScope.launch {
+            // If it is on screen, the layers collector falls back to the base image.
+            runCatching { repository.deleteLayer(layer) }
+        }
+    }
+
+    /**
+     * Switches the displayed image. Filtered bitmaps and step layers belong to one image,
+     * so both are dropped and rebuilt lazily for the new one.
+     */
+    private fun showImage(layerId: Long?) {
+        filterJob?.cancel()
+        stepsJob?.cancel()
+        _uiState.update {
+            it.copy(
+                activeLayerId = layerId,
+                filteredBitmap = null,
+                filterLoading = it.filter.needsBitmap(),
+                steps = emptyList(),
+                stepIndex = null,
+                stepsLoading = false,
+            )
+        }
+        val state = _uiState.value
+        val project = state.project ?: return
+        if (state.filter.needsBitmap()) applyBitmapFilter(project)
     }
 
     private fun startTicker() {
@@ -452,13 +539,14 @@ class TraceViewModel @Inject constructor(
      */
     fun captureBeforeAfter() {
         val project = _uiState.value.project ?: return
+        val beforePath = _uiState.value.activeImagePath ?: project.imagePath
         if (_uiState.value.beforeAfterSaving) return
         _uiState.update { it.copy(beforeAfterSaving = true) }
         captureStillFile(
             onResult = { file ->
                 viewModelScope.launch {
                     val saved = runCatching {
-                        val before = imageStore.loadBitmap(project.imagePath, BeforeAfter.PANEL_HEIGHT)
+                        val before = imageStore.loadBitmap(beforePath, BeforeAfter.PANEL_HEIGHT)
                             ?: error("Missing reference")
                         val after = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
                             ?: error("Missing capture")
@@ -496,10 +584,15 @@ class TraceViewModel @Inject constructor(
         _uiState.update { it.copy(stepsLoading = true) }
         stepsJob = viewModelScope.launch {
             try {
-                val source = imageStore.loadBitmap(project.imagePath)
+                val path = state.activeImagePath ?: project.imagePath
+                val source = imageStore.loadBitmap(path)
                     ?: throw IllegalStateException("Missing image")
-                val steps = stepGenerator.buildSteps(project.imagePath, source)
-                _uiState.update { it.copy(steps = steps, stepIndex = 0, stepsLoading = false) }
+                val steps = stepGenerator.buildSteps(path, source)
+                _uiState.update {
+                    // Drop the result if the user switched images while it was building.
+                    if (it.activeImagePath == path) it.copy(steps = steps, stepIndex = 0, stepsLoading = false)
+                    else it
+                }
             } catch (_: Exception) {
                 _uiState.update { it.copy(stepsLoading = false) }
             }
@@ -524,13 +617,15 @@ class TraceViewModel @Inject constructor(
         filterJob?.cancel()
         filterJob = viewModelScope.launch {
             val filter = _uiState.value.filter
+            val path = _uiState.value.activeImagePath ?: project.imagePath
             try {
-                val source = imageStore.loadBitmap(project.imagePath)
+                val source = imageStore.loadBitmap(path)
                     ?: throw IllegalStateException("Missing image")
-                val bitmap = filters.filtered(project.imagePath, source, filter)
+                val bitmap = filters.filtered(path, source, filter)
                 _uiState.update {
-                    if (it.filter == filter) it.copy(filteredBitmap = bitmap, filterLoading = false)
-                    else it
+                    if (it.filter == filter && it.activeImagePath == path) {
+                        it.copy(filteredBitmap = bitmap, filterLoading = false)
+                    } else it
                 }
             } catch (_: Exception) {
                 _uiState.update { it.copy(filterLoading = false) }

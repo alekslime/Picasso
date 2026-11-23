@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
@@ -94,6 +95,12 @@ fun TraceScreen(
     val context = LocalContext.current
     val activity = context as? Activity
     val state by viewModel.uiState.collectAsState()
+    val layerName = stringResource(R.string.layer_default_name, state.layers.size + 1)
+    val pickLayerImage = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri: Uri? ->
+        if (uri != null) viewModel.addLayer(uri, layerName)
+    }
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -233,7 +240,7 @@ fun TraceScreen(
                 // Crossfade only on content/filter/step switches, never on gestures
                 // or slider drags: each slot renders its own key, transform stays live.
                 val overlayContent = stepOrFiltered?.let { OverlayContent.Pixels(it) }
-                    ?: OverlayContent.FileImage(File(project.imagePath))
+                    ?: OverlayContent.FileImage(File(state.activeImagePath ?: project.imagePath))
                 val effectiveFilter = if (stepActive) TraceFilter.ORIGINAL else state.filter
                 Crossfade(targetState = overlayContent to effectiveFilter, label = "overlay") { (content, filter) ->
                     OverlayImage(
@@ -376,6 +383,18 @@ fun TraceScreen(
                             isPro = state.proUnlocked,
                             onToggle = { activity?.let { viewModel.toggleAnchorMode(it) } },
                         )
+                        LayersBar(
+                            layers = state.layers,
+                            activeLayerId = state.activeLayerId,
+                            busy = state.layerBusy,
+                            onSelect = viewModel::selectLayer,
+                            onAdd = {
+                                pickLayerImage.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                )
+                            },
+                            onDelete = viewModel::deleteLayer,
+                        )
                         FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
                         LightBar(
                             expanded = state.lightExpanded,
@@ -492,7 +511,7 @@ fun TraceScreen(
                 ) {
                     state.project?.let { project ->
                         OverlayImage(
-                            content = OverlayContent.FileImage(File(project.imagePath)),
+                            content = OverlayContent.FileImage(File(state.activeImagePath ?: project.imagePath)),
                             transform = viewModel.effectiveTransform(state),
                             opacity = 1f,
                             locked = false,
