@@ -100,6 +100,10 @@ data class TraceUiState(
     /** The image the overlay, filters, steps and wall mode currently use. */
     val activeImagePath: String?
         get() = layers.firstOrNull { it.id == activeLayerId }?.imagePath ?: project?.imagePath
+
+    /** The layer on screen, or null when the base image is active. */
+    val activeLayer: OverlayLayer?
+        get() = layers.firstOrNull { it.id == activeLayerId }
 }
 
 @HiltViewModel
@@ -278,6 +282,14 @@ class TraceViewModel @Inject constructor(
         viewModelScope.launch {
             // If it is on screen, the layers collector falls back to the base image.
             runCatching { repository.deleteLayer(layer) }
+        }
+    }
+
+    /** Changes the opacity of the layer on screen; the base image keeps the project opacity. */
+    fun setLayerOpacity(layerId: Long, opacity: Float) {
+        val layer = _uiState.value.layers.firstOrNull { it.id == layerId } ?: return
+        viewModelScope.launch {
+            runCatching { repository.updateLayer(layer.copy(opacity = opacity.coerceIn(0f, 1f))) }
         }
     }
 

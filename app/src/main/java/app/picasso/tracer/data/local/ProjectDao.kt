@@ -3,6 +3,7 @@ package app.picasso.tracer.data.local
 import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -27,6 +28,9 @@ interface ProjectDao {
 
     @Upsert
     suspend fun upsertLayer(entity: LayerEntity): Long
+
+    @Update
+    suspend fun updateLayer(entity: LayerEntity)
 
     @Query("SELECT * FROM layers WHERE id = :id")
     suspend fun getLayerById(id: Long): LayerEntity?

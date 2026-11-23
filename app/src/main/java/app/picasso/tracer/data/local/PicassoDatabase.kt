@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [ProjectEntity::class, LayerEntity::class], version = 4, exportSchema = false)
+@Database(entities = [ProjectEntity::class, LayerEntity::class], version = 5, exportSchema = false)
 abstract class PicassoDatabase : RoomDatabase() {
     abstract fun projectDao(): ProjectDao
 
@@ -34,6 +34,12 @@ abstract class PicassoDatabase : RoomDatabase() {
                         "FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE)",
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_layers_projectId ON layers(projectId)")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE layers ADD COLUMN opacity REAL NOT NULL DEFAULT 1.0")
             }
         }
     }

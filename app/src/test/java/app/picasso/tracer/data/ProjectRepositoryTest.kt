@@ -58,6 +58,10 @@ private class FakeProjectDao : ProjectDao {
         return id
     }
 
+    override suspend fun updateLayer(entity: LayerEntity) {
+        layers.update { list -> list.map { if (it.id == entity.id) entity else it } }
+    }
+
     override suspend fun getLayers(projectId: Long) = layers.value.filter { it.projectId == projectId }
 
     override suspend fun getLayerById(id: Long) = layers.value.find { it.id == id }
@@ -276,5 +280,19 @@ class ProjectRepositoryTest {
 
         assertEquals(setOf("/img/l1.jpg", "/img/l2.jpg"), files.deleted.toSet())
         assertTrue(repo.observeLayers(project).first().isEmpty())
+    }
+
+    @Test
+    fun `updateLayer persists opacity and name`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "Sketch")
+        val layer = repo.observeLayers(project).first().single()
+
+        repo.updateLayer(layer.copy(opacity = 0.4f, name = "Renamed"))
+
+        val reloaded = repo.observeLayers(project).first().single()
+        assertEquals("Renamed", reloaded.name)
+        assertEquals(0.4f, reloaded.opacity, 0.001f)
     }
 }

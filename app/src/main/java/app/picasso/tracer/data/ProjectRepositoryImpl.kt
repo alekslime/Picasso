@@ -79,6 +79,10 @@ class ProjectRepositoryImpl @Inject constructor(
         dao.deleteLayerById(layer.id)
         imageFiles.delete(layer.imagePath)
     }
+
+    override suspend fun updateLayer(layer: OverlayLayer) {
+        dao.updateLayer(layer.toEntity())
+    }
 }
 
 fun LayerEntity.toDomain(): OverlayLayer = OverlayLayer(
@@ -87,6 +91,16 @@ fun LayerEntity.toDomain(): OverlayLayer = OverlayLayer(
     imagePath = imagePath,
     name = name,
     createdAt = createdAt,
+    opacity = opacity,
+)
+
+fun OverlayLayer.toEntity(): LayerEntity = LayerEntity(
+    id = id,
+    projectId = projectId,
+    imagePath = imagePath,
+    name = name,
+    createdAt = createdAt,
+    opacity = opacity,
 )
 
 fun ProjectEntity.toDomain(): Project = Project(

@@ -246,7 +246,7 @@ fun TraceScreen(
                     OverlayImage(
                         content = content,
                         transform = viewModel.effectiveTransform(state),
-                        opacity = state.opacity,
+                        opacity = state.activeLayer?.opacity ?: state.opacity,
                         locked = state.locked,
                         // Light tuning applies on top of everything, including step layers.
                         colorFilter = remember(filter, state.brightness, state.contrast) {
@@ -394,6 +394,7 @@ fun TraceScreen(
                                 )
                             },
                             onDelete = viewModel::deleteLayer,
+                            onOpacity = viewModel::setLayerOpacity,
                         )
                         FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
                         LightBar(

@@ -32,7 +32,7 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): PicassoDatabase =
         Room.databaseBuilder(context, PicassoDatabase::class.java, "picasso.db")
-            .addMigrations(PicassoDatabase.MIGRATION_1_2, PicassoDatabase.MIGRATION_2_3, PicassoDatabase.MIGRATION_3_4)
+            .addMigrations(PicassoDatabase.MIGRATION_1_2, PicassoDatabase.MIGRATION_2_3, PicassoDatabase.MIGRATION_3_4, PicassoDatabase.MIGRATION_4_5)
             .build()
 
     @Provides

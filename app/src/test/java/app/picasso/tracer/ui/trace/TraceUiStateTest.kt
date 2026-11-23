@@ -32,4 +32,11 @@ class TraceUiStateTest {
         val state = TraceUiState(project = project, layers = emptyList(), activeLayerId = 7)
         assertEquals("/base.jpg", state.activeImagePath)
     }
+
+    @Test
+    fun `activeLayer is the layer on screen`() {
+        val state = TraceUiState(project = project, layers = listOf(layer), activeLayerId = 7)
+        assertEquals(7L, state.activeLayer?.id)
+        assertNull(TraceUiState(project = project, layers = emptyList()).activeLayer)
+    }
 }

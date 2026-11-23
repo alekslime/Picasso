@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,11 +27,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.OverlayLayer
+import app.picasso.tracer.ui.theme.PicassoPaper
+import app.picasso.tracer.ui.theme.PicassoPaperMuted
+import kotlin.math.roundToInt
 
 /**
  * Picks which of a project's reference images the overlay shows: the base image
- * or one of the added layers. Layers are selected, never blended, and share the
- * project's transform, opacity and filter.
+ * or one of the added layers. Layers are selected, never blended, share the
+ * project's transform and filter, and each has its own opacity.
  */
 @Composable
 fun LayersBar(
@@ -39,6 +44,7 @@ fun LayersBar(
     onSelect: (Long?) -> Unit,
     onAdd: () -> Unit,
     onDelete: (OverlayLayer) -> Unit,
+    onOpacity: (Long, Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var confirmDelete by remember { mutableStateOf<OverlayLayer?>(null) }
@@ -78,6 +84,31 @@ fun LayersBar(
                         contentDescription = stringResource(R.string.layer_delete),
                     )
                 }
+            }
+        }
+        if (active != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                Text(
+                    stringResource(R.string.opacity),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PicassoPaperMuted,
+                    modifier = Modifier.widthIn(min = 72.dp),
+                )
+                PicassoSlider(
+                    value = active.opacity,
+                    onValueChange = { onOpacity(active.id, it) },
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "${(active.opacity * 100).roundToInt()}%",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PicassoPaper,
+                    modifier = Modifier.widthIn(min = 40.dp),
+                )
             }
         }
     }

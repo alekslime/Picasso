@@ -24,5 +24,8 @@ interface ProjectRepository {
     /** Persists an already-stored image as a layer; returns the layer id. */
     suspend fun addLayer(projectId: Long, imagePath: String, name: String): Long
 
+    /** Persists changed name and/or opacity on a stored layer. */
+    suspend fun updateLayer(layer: OverlayLayer)
+
     suspend fun deleteLayer(layer: OverlayLayer)
 }
