@@ -422,6 +422,7 @@ fun TraceScreen(
                             saving = state.beforeAfterSaving,
                             onClick = viewModel::captureBeforeAfter,
                         )
+                        WallModeBar(onClick = viewModel::toggleWallMode)
                     }
                 },
                     modifier = Modifier.fillMaxWidth(),

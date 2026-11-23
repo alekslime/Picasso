@@ -88,6 +88,7 @@ data class TraceUiState(
     val timelapseIntervalSec: Int = 10,
     val timelapseCount: Int = 0,
     val beforeAfterSaving: Boolean = false,
+    val wallMode: Boolean = false,
     val showTutorial: Boolean = false,
     val tutorialStep: Int = 0,
 )
@@ -636,6 +637,10 @@ class TraceViewModel @Inject constructor(
     private fun captureStillFile(onResult: (java.io.File) -> Unit, onError: () -> Unit) {
         if (_uiState.value.arEngine == ArEngine.CORE) arCore.captureStill(onResult, onError)
         else cameraManager.captureStillToFile(onResult, onError)
+    }
+
+    fun toggleWallMode() {
+        _uiState.update { it.copy(wallMode = !it.wallMode) }
     }
 
     fun toggleTimelapse() {

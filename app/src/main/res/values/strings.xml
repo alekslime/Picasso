@@ -102,6 +102,9 @@
     <string name="record">Record</string>
     <string name="timelapse">Timelapse</string>
     <string name="before_after">Before / After</string>
+    <string name="wall_mode">Wall mode</string>
+    <string name="wall_hint">Full-screen reference for projectors and big screens. Drag to position, pinch to scale.</string>
+    <string name="close">Close</string>
     <string name="tutorial_step">Step %1$d of 3</string>
     <string name="tutorial_1_title">Place your reference</string>
     <string name="tutorial_1_body">Drag to move it. Pinch to scale, twist with two fingers to rotate.</string>
