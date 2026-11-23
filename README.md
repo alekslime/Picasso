@@ -80,6 +80,7 @@ Fill these in before a store release:
 - Filters: original, grayscale, high contrast, outline, value study
 - Guides: grid, thirds, golden ratio, diagonal (1dp thin lines)
 - AR anchor (beta): overlay stays on the paper as the phone moves
+- Overlay layers: add a reference, swap it with the base or trace over it, fade it or rename it
 - Timelapse frames, before/after gallery export, session recording
 - Library with samples, favorites, search, sort, rename/delete
 - "Continue last tracing" home-screen widget
