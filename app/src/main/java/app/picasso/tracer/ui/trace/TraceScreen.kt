@@ -22,6 +22,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -61,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -86,6 +88,9 @@ import app.picasso.tracer.ui.theme.PicassoInk
 import app.picasso.tracer.ui.theme.PicassoPaper
 import app.picasso.tracer.ui.theme.PicassoPaperMuted
 import java.io.File
+
+/** Drag-down distance on the open panel that collapses it. */
+private const val COLLAPSE_SWIPE_PX = 64f
 
 @Composable
 fun TraceScreen(
@@ -358,7 +363,14 @@ fun TraceScreen(
                 visible = panelVisible,
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-                modifier = panelModifier,
+                modifier = panelModifier.pointerInput(Unit) {
+                    // Drag down anywhere on the open panel to collapse it.
+                    var dragDistance = 0f
+                    detectTransformGestures { _, pan, _, _ ->
+                        if (pan.y > 0f) dragDistance += pan.y
+                        if (dragDistance > COLLAPSE_SWIPE_PX) panelVisible = false
+                    }
+                },
             ) {
             TraceControls(
                 opacity = state.opacity,
