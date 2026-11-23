@@ -395,6 +395,7 @@ fun TraceScreen(
                             },
                             onDelete = viewModel::deleteLayer,
                             onOpacity = viewModel::setLayerOpacity,
+                            onRename = viewModel::renameLayer,
                         )
                         FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
                         LightBar(

@@ -4,16 +4,19 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,9 +48,11 @@ fun LayersBar(
     onAdd: () -> Unit,
     onDelete: (OverlayLayer) -> Unit,
     onOpacity: (Long, Float) -> Unit,
+    onRename: (Long, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var confirmDelete by remember { mutableStateOf<OverlayLayer?>(null) }
+    var renaming by remember { mutableStateOf<OverlayLayer?>(null) }
     val active = layers.firstOrNull { it.id == activeLayerId }
 
     Column(modifier = modifier) {
@@ -78,6 +83,9 @@ fun LayersBar(
                 leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
             )
             if (active != null) {
+                IconButton(onClick = { renaming = active }) {
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.rename))
+                }
                 IconButton(onClick = { confirmDelete = active }) {
                     Icon(
                         Icons.Default.DeleteOutline,
@@ -129,4 +137,45 @@ fun LayersBar(
             },
         )
     }
+
+    renaming?.let { layer ->
+        RenameLayerDialog(
+            layer = layer,
+            onDismiss = { renaming = null },
+            onConfirm = { name ->
+                renaming = null
+                onRename(layer.id, name)
+            },
+        )
+    }
+}
+
+@Composable
+private fun RenameLayerDialog(
+    layer: OverlayLayer,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var name by remember(layer.id) { mutableStateOf(layer.name) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.rename_layer)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = { Text(stringResource(R.string.rename_layer_hint)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(name) }, enabled = name.trim().isNotEmpty()) {
+                Text(stringResource(R.string.save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
 }

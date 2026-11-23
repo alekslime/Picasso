@@ -106,6 +106,8 @@
     <string name="layer_delete">Delete layer</string>
     <string name="layer_delete_title">Delete %1$s?</string>
     <string name="layer_delete_confirm">This removes the layer and its image. This cannot be undone.</string>
+    <string name="rename_layer">Rename layer</string>
+    <string name="rename_layer_hint">Layer name</string>
     <string name="record">Record</string>
     <string name="timelapse">Timelapse</string>
     <string name="before_after">Before / After</string>

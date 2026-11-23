@@ -293,6 +293,16 @@ class TraceViewModel @Inject constructor(
         }
     }
 
+    /** Renames the layer on screen; the base image is untouched. */
+    fun renameLayer(layerId: Long, name: String) {
+        val layer = _uiState.value.layers.firstOrNull { it.id == layerId } ?: return
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            runCatching { repository.updateLayer(layer.copy(name = trimmed)) }
+        }
+    }
+
     /**
      * Switches the displayed image. Filtered bitmaps and step layers belong to one image,
      * so both are dropped and rebuilt lazily for the new one.
