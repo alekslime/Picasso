@@ -303,7 +303,7 @@ fun TraceScreen(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
             }
 
-            // Figma top readout: TRACE + active filter, mono, top-end over the camera.
+            // Figma top readout: TRACE + active layer name or filter, mono, top-end over the camera.
             Column(
                 horizontalAlignment = Alignment.End,
                 modifier = Modifier
@@ -319,7 +319,7 @@ fun TraceScreen(
                     color = PicassoPaperMuted,
                 )
                 Text(
-                    state.filter.name,
+                    state.activeLayer?.name ?: state.filter.name,
                     style = MaterialTheme.typography.labelMedium,
                     color = PicassoPaper,
                 )
