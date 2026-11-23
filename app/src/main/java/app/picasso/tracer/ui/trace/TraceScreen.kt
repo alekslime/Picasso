@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.view.WindowManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.graphics.Matrix
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -76,6 +78,7 @@ import app.picasso.tracer.camera.OverlayMode
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.filters.GpuFilters
 import app.picasso.tracer.ui.permission.CameraPermissionScreen
+import app.picasso.tracer.ui.theme.PicassoBlack
 import app.picasso.tracer.ui.theme.PicassoBlack
 import app.picasso.tracer.ui.theme.PicassoOchre
 import app.picasso.tracer.ui.theme.PicassoInk
@@ -475,6 +478,68 @@ fun TraceScreen(
                             onExpand = { viewModel.onTutorialExpand(); panelVisible = true },
                         )
                     }
+                }
+            }
+
+            if (state.wallMode) {
+                // Full-screen reference for projectors and big screens. The phone
+                // screen is what gets mirrored — no chrome, just the image.
+                BackHandler { viewModel.toggleWallMode() }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(PicassoBlack),
+                ) {
+                    state.project?.let { project ->
+                        OverlayImage(
+                            content = OverlayContent.FileImage(File(project.imagePath)),
+                            transform = viewModel.effectiveTransform(state),
+                            opacity = 1f,
+                            locked = false,
+                            colorFilter = remember(state.filter, state.brightness, state.contrast) {
+                                GpuFilters.colorFilterFor(state.filter, state.brightness, state.contrast)
+                            },
+                            onGesture = viewModel::onOverlayGesture,
+                        )
+                    }
+                    if (state.gridVisible) {
+                        ProportionGrid(
+                            type = state.guideType,
+                            rows = state.gridRows,
+                            columns = state.gridCols,
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.wall_hint),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PicassoPaper,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(20.dp),
+                    )
+                    FilledIconButton(
+                        onClick = viewModel::toggleWallMode,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = PicassoBlack.copy(alpha = 0.65f),
+                            contentColor = PicassoPaper,
+                        ),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .statusBarsPadding()
+                            .padding(8.dp),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.close))
+                    }
+                    PicassoFilterChip(
+                        selected = state.gridVisible,
+                        onClick = viewModel::toggleGrid,
+                        label = stringResource(R.string.grid),
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .statusBarsPadding()
+                            .padding(12.dp),
+                    )
                 }
             }
 
