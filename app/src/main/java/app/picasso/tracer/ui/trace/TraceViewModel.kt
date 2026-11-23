@@ -403,15 +403,20 @@ class TraceViewModel @Inject constructor(
         }
     }
 
-    /** Step 3 finishes when the panel opens; Next/Skip drive it manually too. */
+    /** Opening the panel advances to step 4 ("add a layer"); at step 4 it finishes. */
     fun onTutorialExpand() {
-        if (_uiState.value.showTutorial && _uiState.value.tutorialStep == 2) completeTutorial()
+        val s = _uiState.value
+        when (s.tutorialStep) {
+            2 -> _uiState.update { it.copy(tutorialStep = 3) }
+            3 -> completeTutorial()
+            else -> Unit
+        }
     }
 
     fun nextTutorialStep() {
         val s = _uiState.value
         if (!s.showTutorial) return
-        if (s.tutorialStep >= 2) completeTutorial()
+        if (s.tutorialStep >= 3) completeTutorial()
         else _uiState.update { it.copy(tutorialStep = it.tutorialStep + 1) }
     }
 

@@ -25,8 +25,8 @@ import app.picasso.tracer.ui.theme.PicassoPaperMuted
 import app.picasso.tracer.ui.theme.PicassoSurface
 
 /**
- * First-trace tutorial: three minimal steps that complete by doing —
- * gesture, lock, then open the panel. Next/Skip always available.
+ * First-trace tutorial: four minimal steps that complete by doing — gesture,
+ * lock, open the panel, then add a reference layer. Next/Skip always available.
  */
 @Composable
 fun TutorialCard(
@@ -38,7 +38,8 @@ fun TutorialCard(
     val (titleRes, bodyRes) = when (step) {
         0 -> R.string.tutorial_1_title to R.string.tutorial_1_body
         1 -> R.string.tutorial_2_title to R.string.tutorial_2_body
-        else -> R.string.tutorial_3_title to R.string.tutorial_3_body
+        2 -> R.string.tutorial_3_title to R.string.tutorial_3_body
+        else -> R.string.tutorial_4_title to R.string.tutorial_4_body
     }
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -80,7 +81,7 @@ fun TutorialCard(
                 ),
                 modifier = Modifier.height(48.dp),
             ) {
-                Text(stringResource(if (step >= 2) R.string.tutorial_done else R.string.tutorial_next))
+                Text(stringResource(if (step >= 3) R.string.tutorial_done else R.string.tutorial_next))
             }
         }
     }

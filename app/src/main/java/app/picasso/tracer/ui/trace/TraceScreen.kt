@@ -391,6 +391,14 @@ fun TraceScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.padding(top = 4.dp),
                     ) {
+                        if (state.showTutorial && state.tutorialStep == 3) {
+                            TutorialCard(
+                                step = state.tutorialStep,
+                                onNext = viewModel::nextTutorialStep,
+                                onSkip = viewModel::skipTutorial,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                         AnchorBar(
                             mode = state.overlayMode,
                             engine = state.arEngine,
