@@ -368,7 +368,10 @@ fun TraceScreen(
                     var dragDistance = 0f
                     detectTransformGestures { _, pan, _, _ ->
                         if (pan.y > 0f) dragDistance += pan.y
-                        if (dragDistance > COLLAPSE_SWIPE_PX) panelVisible = false
+                        if (panelVisible && dragDistance > COLLAPSE_SWIPE_PX) {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            panelVisible = false
+                        }
                     }
                 },
             ) {
