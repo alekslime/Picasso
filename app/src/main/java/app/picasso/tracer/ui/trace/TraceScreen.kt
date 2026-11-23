@@ -494,7 +494,8 @@ fun TraceScreen(
                             )
                         }
                         CleanTraceDeck(
-                        opacity = state.opacity,
+                        opacity = state.activeLayer?.opacity ?: state.opacity,
+                        activeLayerName = state.activeLayer?.name,
                         locked = state.locked,
                         torchOn = state.torchOn,
                         filter = state.filter,
@@ -508,7 +509,11 @@ fun TraceScreen(
                         recording = cameraState.recording,
                         anchorActive = state.overlayMode == app.picasso.tracer.camera.OverlayMode.AR,
                         onToggleAnchor = { activity?.let { viewModel.toggleAnchorMode(it) } },
-                        onOpacity = viewModel::setOpacity,
+                        onOpacity = { value ->
+                            val layer = state.activeLayer
+                            if (layer != null) viewModel.setLayerOpacity(layer.id, value)
+                            else viewModel.setOpacity(value)
+                        },
                         onToggleLock = viewModel::toggleLock,
                         onFlipH = viewModel::flipHorizontal,
                         onFlipV = viewModel::flipVertical,

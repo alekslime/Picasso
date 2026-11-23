@@ -55,6 +55,7 @@ import kotlin.math.roundToInt
 @Composable
 fun CleanTraceDeck(
     opacity: Float,
+    activeLayerName: String?,
     locked: Boolean,
     torchOn: Boolean,
     filter: TraceFilter,
@@ -108,7 +109,8 @@ fun CleanTraceDeck(
                     .padding(horizontal = 12.dp),
             ) {
                 Text(
-                    "${(opacity * 100).roundToInt()}%   ${filter.name}   $gridLabel",
+                    activeLayerName?.let { "$it   ${(opacity * 100).roundToInt()}" }
+                        ?: "${(opacity * 100).roundToInt()}%   ${filter.name}   $gridLabel",
                     style = MaterialTheme.typography.labelMedium,
                     color = PicassoPaper,
                 )
