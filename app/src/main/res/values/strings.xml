@@ -127,9 +127,9 @@
     <string name="tutorial_2_title">Lock when aligned</string>
     <string name="tutorial_2_body">Tap the lock so gestures stop moving the overlay while you draw.</string>
     <string name="tutorial_3_title">Make it yours</string>
-    <string name="tutorial_3_body">Everything else is in the panel below: filters, guides, steps and recording.</string>
+    <string name="tutorial_3_body">Tap Tools for filters, guides, steps and recording.</string>
     <string name="tutorial_4_title">Add a reference layer</string>
-    <string name="tutorial_4_body">Tap Add in the Layers row and pick an image. You can fade or rename it later.</string>
+    <string name="tutorial_4_body">Open Tools, then Image, and tap Add under Layers.</string>
     <string name="tutorial_next">Next</string>
     <string name="tutorial_skip">Skip</string>
     <string name="tutorial_done">Start tracing</string>
@@ -145,6 +145,10 @@
     <string name="reset_view">Reset view</string>
     <string name="collapse_panel">Hide panel</string>
     <string name="expand_panel">Show panel</string>
+    <string name="tools">Tools</string>
+    <string name="tab_image">Image</string>
+    <string name="tab_assist">Assist</string>
+    <string name="tab_capture">Capture</string>
 
     <!-- Light -->
     <string name="light">Light</string>

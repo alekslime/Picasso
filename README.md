@@ -126,6 +126,7 @@ dark camera-first layout.
 
 ## Updating the screenshots
 
+<<<<<<< HEAD
 With a device or emulator connected and the debug build installed:
 
 ```sh
@@ -133,3 +134,16 @@ With a device or emulator connected and the debug build installed:
 ```
 
 It walks you through each screen and saves PNGs to `assets/screenshots/`.
+=======
+With an emulator running or a phone connected (USB debugging on):
+
+```sh
+./scripts/screenshots.sh        # or: python3 scripts/screenshots.py
+```
+
+It installs the debug build if needed, starts the app from a clean state,
+taps through every screen on its own and saves the six PNGs to
+`assets/screenshots/`. Pass `--serial <id>` if more than one device is attached.
+It clears Picasso's app data first, so don't run it on a device with tracings
+you want to keep.
+>>>>>>> ee74ee7 (Add monetization and releasing documentation, and automate screenshot capture)

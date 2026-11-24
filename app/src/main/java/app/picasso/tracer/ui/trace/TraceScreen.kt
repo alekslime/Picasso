@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -96,10 +95,6 @@ import app.picasso.tracer.ui.theme.PicassoPaperMuted
 import java.io.File
 
 /** Drag-down distance on the open panel that collapses it. */
-// Thin frame around the camera card (Figma). Change here to restyle it.
-private val CAMERA_STROKE_WIDTH = 1.dp
-private val CAMERA_STROKE_COLOR = PicassoPaper.copy(alpha = 0.28f)
-
 @Composable
 fun TraceScreen(
     onBack: () -> Unit,
@@ -202,14 +197,12 @@ fun TraceScreen(
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
         Box(modifier = Modifier.fillMaxSize().background(PicassoBlack)) {
-            // Figma layout: an inset camera card with a thin stroke, and one always-open
-            // panel with every setting beneath it (landscape: panel beside the camera).
-            val cameraShape = RoundedCornerShape(20.dp)
+            // Camera card takes all the room; a slim dock sits beneath it (landscape: beside it)
+            // and the full settings open on demand in a bottom sheet.
+            val cameraShape = RoundedCornerShape(24.dp)
             val cameraCard: @Composable (Modifier) -> Unit = { cardModifier ->
                 Box(
-                    modifier = cardModifier
-                        .clip(cameraShape)
-                        .border(CAMERA_STROKE_WIDTH, CAMERA_STROKE_COLOR, cameraShape),
+                    modifier = cardModifier.clip(cameraShape),
                 ) {
                     val coreCamera = state.overlayMode == OverlayMode.AR && state.arEngine == ArEngine.CORE
                     if (coreCamera) {
@@ -317,6 +310,17 @@ fun TraceScreen(
                         )
                     }
 
+                    if (state.showTutorial) {
+                        TutorialCard(
+                            step = state.tutorialStep,
+                            onNext = viewModel::nextTutorialStep,
+                            onSkip = viewModel::skipTutorial,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 12.dp),
+                        )
+                    }
+
                     FilledIconButton(
                         onClick = onBack,
                         colors = IconButtonDefaults.filledIconButtonColors(
@@ -372,41 +376,59 @@ fun TraceScreen(
                     )
                 }
             }
+            var toolsOpen by remember { mutableStateOf(false) }
             val controlsPanel: @Composable (Modifier) -> Unit = { panelModifier ->
-                    TraceControls(
-                        opacity = state.activeLayer?.opacity ?: state.opacity,
-                        locked = state.locked,
-                        torchOn = state.torchOn,
-                        onOpacity = { value ->
-                            val layer = state.activeLayer
-                            if (layer != null) viewModel.setLayerOpacity(layer.id, value)
-                            else viewModel.setOpacity(value)
-                        },
-                        onToggleLock = viewModel::toggleLock,
-                        onFlipH = viewModel::flipHorizontal,
-                        onFlipV = viewModel::flipVertical,
-                        onToggleTorch = { viewModel.setTorch(!state.torchOn) },
-                        onResetView = viewModel::resetView,
-                        extraContent = {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.padding(top = 4.dp),
-                            ) {
-                                if (state.showTutorial) {
-                                    TutorialCard(
-                                        step = state.tutorialStep,
-                                        onNext = viewModel::nextTutorialStep,
-                                        onSkip = viewModel::skipTutorial,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                                AnchorBar(
-                                    mode = state.overlayMode,
-                                    engine = state.arEngine,
-                                    status = state.arStatus,
-                                    isPro = state.proUnlocked,
-                                    onToggle = { activity?.let { viewModel.toggleAnchorMode(it) } },
-                                )
+                TraceDock(
+                    opacity = state.activeLayer?.opacity ?: state.opacity,
+                    locked = state.locked,
+                    torchOn = state.torchOn,
+                    onOpacity = { value ->
+                        val layer = state.activeLayer
+                        if (layer != null) viewModel.setLayerOpacity(layer.id, value)
+                        else viewModel.setOpacity(value)
+                    },
+                    onToggleLock = viewModel::toggleLock,
+                    onFlipH = viewModel::flipHorizontal,
+                    onFlipV = viewModel::flipVertical,
+                    onToggleTorch = { viewModel.setTorch(!state.torchOn) },
+                    onResetView = viewModel::resetView,
+                    onOpenTools = {
+                        toolsOpen = true
+                        viewModel.onTutorialExpand()
+                    },
+                    modifier = panelModifier,
+                )
+            }
+            if (landscape) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .padding(8.dp),
+                ) {
+                    cameraCard(Modifier.weight(1f).fillMaxHeight())
+                    controlsPanel(Modifier.width(320.dp).align(Alignment.CenterVertically))
+                }
+            } else {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                ) {
+                    cameraCard(Modifier.weight(1f).fillMaxWidth())
+                    controlsPanel(Modifier.fillMaxWidth())
+                }
+            }
+
+            if (toolsOpen) {
+                ToolsSheet(
+                    onDismiss = { toolsOpen = false },
+                    image = {
                                 LayersBar(
                                     layers = state.layers,
                                     activeLayerId = state.activeLayerId,
@@ -421,13 +443,6 @@ fun TraceScreen(
                                     onOpacity = viewModel::setLayerOpacity,
                                     onRename = viewModel::renameLayer,
                                 )
-                                TrainingWheelsBar(
-                                    level = state.trainingLevel,
-                                    suggestLess = state.suggestLessHelp,
-                                    onSelect = viewModel::setTrainingLevel,
-                                    onLessHelp = viewModel::lessHelp,
-                                    onDismissSuggestion = viewModel::dismissHelpSuggestion,
-                                )
                                 FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
                                 LightBar(
                                     expanded = state.lightExpanded,
@@ -438,6 +453,8 @@ fun TraceScreen(
                                     onContrast = viewModel::setContrast,
                                     onReset = viewModel::resetLight,
                                 )
+                    },
+                    guides = {
                                 GridBar(
                                     visible = state.gridVisible,
                                     type = state.guideType,
@@ -448,11 +465,12 @@ fun TraceScreen(
                                     onRows = viewModel::setGridRows,
                                     onColumns = viewModel::setGridCols,
                                 )
-                                StrobeBar(
-                                    enabled = state.strobeOn,
-                                    hz = state.strobeHz,
-                                    onToggle = viewModel::toggleStrobe,
-                                    onHz = viewModel::setStrobeHz,
+                                TrainingWheelsBar(
+                                    level = state.trainingLevel,
+                                    suggestLess = state.suggestLessHelp,
+                                    onSelect = viewModel::setTrainingLevel,
+                                    onLessHelp = viewModel::lessHelp,
+                                    onDismissSuggestion = viewModel::dismissHelpSuggestion,
                                 )
                                 StepsBar(
                                     active = state.stepIndex != null,
@@ -462,16 +480,33 @@ fun TraceScreen(
                                     onPrevious = viewModel::previousStep,
                                     onNext = viewModel::nextStep,
                                 )
+                    },
+                    assist = {
+                                AnchorBar(
+                                    mode = state.overlayMode,
+                                    engine = state.arEngine,
+                                    status = state.arStatus,
+                                    isPro = state.proUnlocked,
+                                    onToggle = { activity?.let { viewModel.toggleAnchorMode(it) } },
+                                )
+                                StrobeBar(
+                                    enabled = state.strobeOn,
+                                    hz = state.strobeHz,
+                                    onToggle = viewModel::toggleStrobe,
+                                    onHz = viewModel::setStrobeHz,
+                                )
+                    },
+                    capture = {
+                                RecordBar(
+                                    recording = cameraState.recording,
+                                    onToggle = ::onRecordToggle,
+                                )
                                 TimelapseBar(
                                     active = state.timelapseActive,
                                     intervalSec = state.timelapseIntervalSec,
                                     frameCount = state.timelapseCount,
                                     onToggle = viewModel::toggleTimelapse,
                                     onInterval = viewModel::setTimelapseInterval,
-                                )
-                                RecordBar(
-                                    recording = cameraState.recording,
-                                    onToggle = ::onRecordToggle,
                                 )
                                 BeforeAfterBar(
                                     saving = state.beforeAfterSaving,
@@ -483,35 +518,8 @@ fun TraceScreen(
                                     onClick = viewModel::saveImage,
                                     label = stringResource(R.string.save_image),
                                 )
-                            }
-                        },
-                    modifier = panelModifier,
+                    },
                 )
-            }
-            if (landscape) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .navigationBarsPadding()
-                        .padding(10.dp),
-                ) {
-                    cameraCard(Modifier.weight(1f).fillMaxHeight())
-                    controlsPanel(Modifier.width(340.dp).fillMaxHeight())
-                }
-            } else {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                ) {
-                    cameraCard(Modifier.weight(0.9f).fillMaxWidth())
-                    controlsPanel(Modifier.weight(1.1f).fillMaxWidth())
-                }
             }
 
             if (state.wallMode) {
