@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 246" width="880" height="246" role="img" aria-label="Training wheels levels from most to least help: full image, values, outline, guides only, nothing">
+<rect width="880" height="246" rx="22" fill="#171717"/>
+<text x="32" y="40" font-family="'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="700" letter-spacing="2" fill="#B9B2A0">MORE HELP</text>
+<text x="848" y="40" text-anchor="end" font-family="'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="700" letter-spacing="2" fill="#B9B2A0">LESS HELP</text>
+<path d="M150 36H718" stroke="#E99A52" stroke-width="2" stroke-linecap="round"/>
+<path d="M710 30l8 6-8 6" fill="none" stroke="#E99A52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(32 64)">
+  <rect width="148" height="150" rx="14" fill="#242424"/>
+  <circle cx="108" cy="34" r="12" fill="#E99A52"/><polygon points="8,104 54,40 96,104" fill="#9A917E"/><polygon points="54,40 96,104 66,104" fill="#7A7261"/><polygon points="64,104 104,58 142,104" fill="#6A6356"/>
+  <text x="74" y="136" text-anchor="middle" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#F1EBDD">Full image</text>
+</g>
+<g transform="translate(199 64)">
+  <rect width="148" height="150" rx="14" fill="#242424"/>
+  <circle cx="108" cy="34" r="12" fill="#EDEDED"/><polygon points="8,104 54,40 96,104" fill="#8A8A8A"/><polygon points="54,40 96,104 66,104" fill="#5E5E5E"/><polygon points="64,104 104,58 142,104" fill="#3C3C3C"/>
+  <text x="74" y="136" text-anchor="middle" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#F1EBDD">Values</text>
+</g>
+<g transform="translate(366 64)">
+  <rect width="148" height="150" rx="14" fill="#242424"/>
+  <g fill="none" stroke="#F1EBDD" stroke-width="2" stroke-linejoin="round"><circle cx="108" cy="34" r="12"/><polygon points="8,104 54,40 96,104"/><polygon points="64,104 104,58 142,104"/><path d="M54 40L66 104"/></g>
+  <text x="74" y="136" text-anchor="middle" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#F1EBDD">Outline</text>
+</g>
+<g transform="translate(533 64)">
+  <rect width="148" height="150" rx="14" fill="#242424"/>
+  <path d="M52.7 10v94M95.3 10v94M10 41.3h128M10 72.7h128" stroke="#E99A52" stroke-width="1.4"/>
+  <text x="74" y="136" text-anchor="middle" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#F1EBDD">Guides</text>
+</g>
+<g transform="translate(700 64)">
+  <rect width="148" height="150" rx="14" fill="#242424"/>
+  <g fill="none" stroke="#B9B2A0" stroke-width="2" stroke-linecap="round"><path d="M10 22v-12h12M126 10h12v12M138 92v12h-12M22 104H10V92"/></g>
+  <text x="74" y="136" text-anchor="middle" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#F1EBDD">Nothing</text>
+</g>
+</svg>

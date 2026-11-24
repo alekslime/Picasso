@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 300" width="880" height="300" role="img" aria-label="Three steps: pick a reference, line it up on the live camera, then draw it on paper">
+<g>
+  <rect x="0" y="0" width="272" height="300" rx="22" fill="#171717"/>
+  <g transform="translate(136 86)"><rect x="-48" y="-36" width="96" height="72" rx="10" fill="#242424" stroke="#F1EBDD" stroke-width="3"/>
+<path d="M-36 24L-12-4 4 14 16 2 36 24z" fill="none" stroke="#E99A52" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="22" cy="-14" r="6" fill="#E99A52"/>
+<circle cx="44" cy="32" r="14" fill="#E99A52" stroke="#171717" stroke-width="4"/>
+<path d="M44 26v12M38 32h12" stroke="#171717" stroke-width="3" stroke-linecap="round"/></g>
+  <text x="28" y="186" font-family="'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace" font-size="13" font-weight="700" letter-spacing="2" fill="#E99A52">01</text>
+  <text x="28" y="216" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="23" font-weight="700" fill="#F1EBDD">Pick</text>
+  <text x="28" y="243" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#B9B2A0">Choose a photo, take one, or</text>
+  <text x="28" y="263" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#B9B2A0">start from a built-in sample.</text>
+</g>
+<g>
+  <rect x="304" y="0" width="272" height="300" rx="22" fill="#171717"/>
+  <g transform="translate(440 86)"><rect x="-34" y="-52" width="68" height="104" rx="12" fill="#242424" stroke="#F1EBDD" stroke-width="3"/>
+<g transform="rotate(-12)">
+  <rect x="-24" y="-26" width="48" height="44" rx="4" fill="#E99A52" fill-opacity="0.18" stroke="#E99A52" stroke-width="2.5" stroke-dasharray="5 4"/>
+  <circle cx="-24" cy="-26" r="4.5" fill="#E99A52"/><circle cx="24" cy="-26" r="4.5" fill="#E99A52"/>
+  <circle cx="-24" cy="18" r="4.5" fill="#E99A52"/><circle cx="24" cy="18" r="4.5" fill="#E99A52"/>
+</g>
+<path d="M52-34a42 42 0 0 1 0 50" fill="none" stroke="#E99A52" stroke-width="3" stroke-linecap="round"/>
+<path d="M44 8l8 9 7-11" fill="none" stroke="#E99A52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="332" y="186" font-family="'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace" font-size="13" font-weight="700" letter-spacing="2" fill="#E99A52">02</text>
+  <text x="332" y="216" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="23" font-weight="700" fill="#F1EBDD">Line up</text>
+  <text x="332" y="243" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#B9B2A0">Drag, pinch and rotate the overlay</text>
+  <text x="332" y="263" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#B9B2A0">on the live camera, then lock it.</text>
+</g>
+<g>
+  <rect x="608" y="0" width="272" height="300" rx="22" fill="#171717"/>
+  <g transform="translate(744 86)"><rect x="-52" y="-38" width="104" height="76" rx="6" fill="#F1EBDD"/>
+<path d="M-40 14C-20-30 10 30 40-14" fill="none" stroke="#B8AE96" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round"/>
+<path d="M-40 14C-20-30 10 30 40-14" pathLength="100" fill="none" stroke="#171717" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="58 100"/>
+<g transform="translate(5 2) rotate(-38)">
+  <polygon points="0,0 12,-5.5 12,5.5" fill="#E8C9A2"/>
+  <polygon points="0,0 3.6,-1.7 3.6,1.7" fill="#171717"/>
+  <rect x="12" y="-5.5" width="32" height="11" fill="#E99A52"/>
+  <rect x="44" y="-5.5" width="8" height="11" rx="2" fill="#D8D2C2" stroke="#171717" stroke-width="1.2"/>
+</g></g>
+  <text x="636" y="186" font-family="'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace" font-size="13" font-weight="700" letter-spacing="2" fill="#E99A52">03</text>
+  <text x="636" y="216" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="23" font-weight="700" fill="#F1EBDD">Draw</text>
+  <text x="636" y="243" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#B9B2A0">Trace what you see onto paper.</text>
+  <text x="636" y="263" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#B9B2A0">Fade it, filter it, add guides.</text>
+</g>
+<path d="M283 142l8 8-8 8" transform="translate(0 0)" fill="none" stroke="#E99A52" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M587 142l8 8-8 8" transform="translate(0 0)" fill="none" stroke="#E99A52" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

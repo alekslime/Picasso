@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 110" width="880" height="110" role="img" aria-label="Picasso palette: Ink 171717, Surface 242424, Paper F1EBDD, Ochre E99A52">
+<g transform="translate(0 0)"><rect x="1" y="1" width="203" height="108" rx="16" fill="#171717" stroke="#3A3A3A" stroke-width="2"/>
+<text x="22" y="64" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#F1EBDD">Ink</text>
+<text x="22" y="88" font-family="'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace" font-size="13" fill="#F1EBDD" fill-opacity="0.8">#171717</text></g>
+<g transform="translate(225 0)"><rect x="1" y="1" width="203" height="108" rx="16" fill="#242424" stroke="#3A3A3A" stroke-width="2"/>
+<text x="22" y="64" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#F1EBDD">Surface</text>
+<text x="22" y="88" font-family="'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace" font-size="13" fill="#F1EBDD" fill-opacity="0.8">#242424</text></g>
+<g transform="translate(450 0)"><rect x="1" y="1" width="203" height="108" rx="16" fill="#F1EBDD" stroke="#F1EBDD" stroke-width="2"/>
+<text x="22" y="64" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#171717">Paper</text>
+<text x="22" y="88" font-family="'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace" font-size="13" fill="#171717" fill-opacity="0.8">#F1EBDD</text></g>
+<g transform="translate(675 0)"><rect x="1" y="1" width="203" height="108" rx="16" fill="#E99A52" stroke="#E99A52" stroke-width="2"/>
+<text x="22" y="64" font-family="Manrope, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#171717">Ochre</text>
+<text x="22" y="88" font-family="'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace" font-size="13" fill="#171717" fill-opacity="0.8">#E99A52</text></g>
+</svg>
