@@ -127,7 +127,7 @@
     <string name="tutorial_2_title">Lock when aligned</string>
     <string name="tutorial_2_body">Tap the lock so gestures stop moving the overlay while you draw.</string>
     <string name="tutorial_3_title">Make it yours</string>
-    <string name="tutorial_3_body">Open the panel for filters, guides, steps and recording.</string>
+    <string name="tutorial_3_body">Everything else is in the panel below: filters, guides, steps and recording.</string>
     <string name="tutorial_4_title">Add a reference layer</string>
     <string name="tutorial_4_body">Tap Add in the Layers row and pick an image. You can fade or rename it later.</string>
     <string name="tutorial_next">Next</string>

@@ -24,6 +24,12 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -90,7 +96,9 @@ import app.picasso.tracer.ui.theme.PicassoPaperMuted
 import java.io.File
 
 /** Drag-down distance on the open panel that collapses it. */
-private const val COLLAPSE_SWIPE_PX = 64f
+// Thin frame around the camera card (Figma). Change here to restyle it.
+private val CAMERA_STROKE_WIDTH = 1.dp
+private val CAMERA_STROKE_COLOR = PicassoPaper.copy(alpha = 0.28f)
 
 @Composable
 fun TraceScreen(
@@ -155,7 +163,6 @@ fun TraceScreen(
     val recordingElapsedSec by viewModel.recordingElapsedSec.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     var showAudioDialog by remember { mutableStateOf(false) }
-    var panelVisible by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
 
     val noticeRes = state.noticeRes
@@ -194,344 +201,182 @@ fun TraceScreen(
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
-        Box(modifier = Modifier.fillMaxSize()) {
-            val coreCamera = state.overlayMode == OverlayMode.AR && state.arEngine == ArEngine.CORE
-            if (coreCamera) {
-                ArCameraPreview(
-                    previewSize = state.arPreviewSize,
-                    onSurfaceReady = { texture, w, h ->
-                        activity?.let { viewModel.startCoreAnchor(it, texture, w, h) }
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                AndroidView(
-                    factory = { ctx ->
-                        PreviewView(ctx).apply {
-                            scaleType = PreviewView.ScaleType.FILL_CENTER
-                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                        }
-                    },
-                    update = { previewView ->
-                        viewModel.cameraManager.preview.setSurfaceProvider(previewView.surfaceProvider)
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-            LaunchedEffect(lifecycleOwner, coreCamera) {
-                // ARCore owns the camera in core mode; every other state uses CameraX.
-                if (!coreCamera) viewModel.rebindCamera(lifecycleOwner)
-            }
-            DisposableEffect(lifecycleOwner) {
-                // Catches the return from the ARCore install flow: upgrades sensor AR silently.
-                val observer = LifecycleEventObserver { _, event ->
-                    if (event == Lifecycle.Event.ON_RESUME) {
-                        activity?.let { viewModel.retryArCore(it) }
+        Box(modifier = Modifier.fillMaxSize().background(PicassoBlack)) {
+            // Figma layout: an inset camera card with a thin stroke, and one always-open
+            // panel with every setting beneath it (landscape: panel beside the camera).
+            val cameraShape = RoundedCornerShape(20.dp)
+            val cameraCard: @Composable (Modifier) -> Unit = { cardModifier ->
+                Box(
+                    modifier = cardModifier
+                        .clip(cameraShape)
+                        .border(CAMERA_STROKE_WIDTH, CAMERA_STROKE_COLOR, cameraShape),
+                ) {
+                    val coreCamera = state.overlayMode == OverlayMode.AR && state.arEngine == ArEngine.CORE
+                    if (coreCamera) {
+                        ArCameraPreview(
+                            previewSize = state.arPreviewSize,
+                            onSurfaceReady = { texture, w, h ->
+                                activity?.let { viewModel.startCoreAnchor(it, texture, w, h) }
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        AndroidView(
+                            factory = { ctx ->
+                                PreviewView(ctx).apply {
+                                    scaleType = PreviewView.ScaleType.FILL_CENTER
+                                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                                }
+                            },
+                            update = { previewView ->
+                                viewModel.cameraManager.preview.setSurfaceProvider(previewView.surfaceProvider)
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
-                }
-                lifecycleOwner.lifecycle.addObserver(observer)
-                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-            }
+                    LaunchedEffect(lifecycleOwner, coreCamera) {
+                        // ARCore owns the camera in core mode; every other state uses CameraX.
+                        if (!coreCamera) viewModel.rebindCamera(lifecycleOwner)
+                    }
+                    DisposableEffect(lifecycleOwner) {
+                        // Catches the return from the ARCore install flow: upgrades sensor AR silently.
+                        val observer = LifecycleEventObserver { _, event ->
+                            if (event == Lifecycle.Event.ON_RESUME) {
+                                activity?.let { viewModel.retryArCore(it) }
+                            }
+                        }
+                        lifecycleOwner.lifecycle.addObserver(observer)
+                        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                    }
 
-            val overlayVisible = !state.strobeOn || state.strobePhase
-            state.project?.let { project ->
-                if (!overlayVisible) return@let
-                val training = state.trainingLevel
-                // Training wheels past the outline draw no reference at all.
-                if (training != null && !training.showsImage) return@let
-                val stepBitmap = if (training != null) {
-                    training.stepLayerIndex?.let { state.steps.getOrNull(it)?.bitmap }
-                        // Wait for the layer instead of flashing the full image.
-                        ?: if (training.stepLayerIndex != null) return@let else null
-                } else {
-                    state.stepIndex?.let { index -> state.steps.getOrNull(index)?.bitmap }
-                }
-                val stepActive = state.stepIndex != null || training != null
-                val filtered = state.filteredBitmap?.takeIf { !stepActive && state.filter.needsBitmap() }
-                val stepOrFiltered = stepBitmap ?: filtered
-                // Crossfade only on content/filter/step switches, never on gestures
-                // or slider drags: each slot renders its own key, transform stays live.
-                val overlayContent = stepOrFiltered?.let { OverlayContent.Pixels(it) }
-                    ?: OverlayContent.FileImage(File(state.activeImagePath ?: project.imagePath))
-                val effectiveFilter = if (stepActive) TraceFilter.ORIGINAL else state.filter
-                Crossfade(targetState = overlayContent to effectiveFilter, label = "overlay") { (content, filter) ->
-                    OverlayImage(
-                        content = content,
-                        transform = viewModel.effectiveTransform(state),
-                        opacity = state.activeLayer?.opacity ?: state.opacity,
-                        locked = state.locked,
-                        // Light tuning applies on top of everything, including step layers.
-                        colorFilter = remember(filter, state.brightness, state.contrast) {
-                            GpuFilters.colorFilterFor(filter, state.brightness, state.contrast)
-                        },
-                        onGesture = viewModel::onOverlayGesture,
+                    val overlayVisible = !state.strobeOn || state.strobePhase
+                    state.project?.let { project ->
+                        if (!overlayVisible) return@let
+                        val training = state.trainingLevel
+                        // Training wheels past the outline draw no reference at all.
+                        if (training != null && !training.showsImage) return@let
+                        val stepBitmap = if (training != null) {
+                            training.stepLayerIndex?.let { state.steps.getOrNull(it)?.bitmap }
+                                // Wait for the layer instead of flashing the full image.
+                                ?: if (training.stepLayerIndex != null) return@let else null
+                        } else {
+                            state.stepIndex?.let { index -> state.steps.getOrNull(index)?.bitmap }
+                        }
+                        val stepActive = state.stepIndex != null || training != null
+                        val filtered = state.filteredBitmap?.takeIf { !stepActive && state.filter.needsBitmap() }
+                        val stepOrFiltered = stepBitmap ?: filtered
+                        // Crossfade only on content/filter/step switches, never on gestures
+                        // or slider drags: each slot renders its own key, transform stays live.
+                        val overlayContent = stepOrFiltered?.let { OverlayContent.Pixels(it) }
+                            ?: OverlayContent.FileImage(File(state.activeImagePath ?: project.imagePath))
+                        val effectiveFilter = if (stepActive) TraceFilter.ORIGINAL else state.filter
+                        Crossfade(targetState = overlayContent to effectiveFilter, label = "overlay") { (content, filter) ->
+                            OverlayImage(
+                                content = content,
+                                transform = viewModel.effectiveTransform(state),
+                                opacity = state.activeLayer?.opacity ?: state.opacity,
+                                locked = state.locked,
+                                // Light tuning applies on top of everything, including step layers.
+                                colorFilter = remember(filter, state.brightness, state.contrast) {
+                                    GpuFilters.colorFilterFor(filter, state.brightness, state.contrast)
+                                },
+                                onGesture = viewModel::onOverlayGesture,
+                            )
+                        }
+                    }
+                    val trainingGuides = state.trainingLevel == app.picasso.tracer.domain.model.HelpLevel.GUIDES
+                    if (state.gridVisible || trainingGuides) {
+                        ProportionGrid(
+                            type = if (trainingGuides && !state.gridVisible) {
+                                app.picasso.tracer.domain.model.GuideType.THIRDS
+                            } else {
+                                state.guideType
+                            },
+                            rows = state.gridRows,
+                            columns = state.gridCols,
+                        )
+                    }
+
+                    // Figma viewfinder dressing: focus ring + marks over the camera area.
+                    FocusMarks(
+                        opacity = state.opacity,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(20.dp),
+                    )
+
+                    if (state.loading || state.filterLoading || state.stepsLoading) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
+                    state.errorRes?.let { Text(stringResource(it), modifier = Modifier.align(Alignment.Center)) }
+                    cameraState.error?.let {
+                        Text(
+                            stringResource(R.string.camera_error, it),
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
+
+                    FilledIconButton(
+                        onClick = onBack,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = PicassoBlack.copy(alpha = 0.65f),
+                            contentColor = PicassoPaper,
+                        ),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+
+                    // Figma top readout: TRACE + active layer name or filter, mono, top-end over the camera.
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
+                            .background(PicassoBlack.copy(alpha = 0.45f), CircleShape)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        Text(
+                            stringResource(R.string.trace_readout),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PicassoPaperMuted,
+                        )
+                        Text(
+                            state.activeLayer?.name ?: state.filter.name,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = PicassoPaper,
+                        )
+                    }
+
+                    if (cameraState.recording) {
+                        RecordingPill(
+                            elapsedSec = recordingElapsedSec,
+                            onStop = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.stopRecording()
+                            },
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 8.dp),
+                        )
+                    }
+
+                    SnackbarHost(
+                        snackbar,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 56.dp),
                     )
                 }
             }
-            val trainingGuides = state.trainingLevel == app.picasso.tracer.domain.model.HelpLevel.GUIDES
-            if (state.gridVisible || trainingGuides) {
-                ProportionGrid(
-                    type = if (trainingGuides && !state.gridVisible) {
-                        app.picasso.tracer.domain.model.GuideType.THIRDS
-                    } else {
-                        state.guideType
-                    },
-                    rows = state.gridRows,
-                    columns = state.gridCols,
-                )
-            }
-
-            // Figma viewfinder dressing: focus ring + marks over the camera area.
-            FocusMarks(
-                opacity = state.opacity,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(top = 72.dp)
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .height(340.dp),
-            )
-
-            if (state.loading || state.filterLoading || state.stepsLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            }
-            state.errorRes?.let { Text(stringResource(it), modifier = Modifier.align(Alignment.Center)) }
-            cameraState.error?.let {
-                Text(
-                    stringResource(R.string.camera_error, it),
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-            }
-
-            FilledIconButton(
-                onClick = onBack,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = PicassoBlack.copy(alpha = 0.65f),
-                    contentColor = PicassoPaper,
-                ),
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .statusBarsPadding()
-                    .padding(8.dp),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-            }
-
-            // Figma top readout: TRACE + active layer name or filter, mono, top-end over the camera.
-            Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(12.dp)
-                    .background(PicassoBlack.copy(alpha = 0.45f), CircleShape)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-            ) {
-                Text(
-                    stringResource(R.string.trace_readout),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PicassoPaperMuted,
-                )
-                Text(
-                    state.activeLayer?.name ?: state.filter.name,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = PicassoPaper,
-                )
-            }
-
-            if (cameraState.recording) {
-                RecordingPill(
-                    elapsedSec = recordingElapsedSec,
-                    onStop = {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.stopRecording()
-                    },
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .statusBarsPadding()
-                        .padding(top = 8.dp),
-                )
-            }
-
-            SnackbarHost(
-                snackbar,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(top = 56.dp),
-            )
-
-            val panelModifier = if (landscape) {
-                Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(8.dp)
-                    .widthIn(max = 320.dp)
-            } else {
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(8.dp)
-                    .fillMaxWidth()
-            }
-            AnimatedVisibility(
-                visible = panelVisible,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-                modifier = panelModifier.pointerInput(Unit) {
-                    // Drag down anywhere on the open panel to collapse it.
-                    var dragDistance = 0f
-                    detectTransformGestures { _, pan, _, _ ->
-                        if (pan.y > 0f) dragDistance += pan.y
-                        if (panelVisible && dragDistance > COLLAPSE_SWIPE_PX) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            panelVisible = false
-                        }
-                    }
-                },
-            ) {
-            TraceControls(
-                opacity = state.opacity,
-                locked = state.locked,
-                torchOn = state.torchOn,
-                onOpacity = viewModel::setOpacity,
-                onToggleLock = viewModel::toggleLock,
-                onFlipH = viewModel::flipHorizontal,
-                onFlipV = viewModel::flipVertical,
-                onToggleTorch = { viewModel.setTorch(!state.torchOn) },
-                onResetView = viewModel::resetView,
-                onCollapse = { panelVisible = false },
-                extraContent = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.padding(top = 4.dp),
-                    ) {
-                        if (state.showTutorial && state.tutorialStep == 3) {
-                            TutorialCard(
-                                step = state.tutorialStep,
-                                onNext = viewModel::nextTutorialStep,
-                                onSkip = viewModel::skipTutorial,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                        AnchorBar(
-                            mode = state.overlayMode,
-                            engine = state.arEngine,
-                            status = state.arStatus,
-                            isPro = state.proUnlocked,
-                            onToggle = { activity?.let { viewModel.toggleAnchorMode(it) } },
-                        )
-                        LayersBar(
-                            layers = state.layers,
-                            activeLayerId = state.activeLayerId,
-                            busy = state.layerBusy,
-                            onSelect = viewModel::selectLayer,
-                            onAdd = {
-                                pickLayerImage.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                                )
-                            },
-                            onDelete = viewModel::deleteLayer,
-                            onOpacity = viewModel::setLayerOpacity,
-                            onRename = viewModel::renameLayer,
-                        )
-                        TrainingWheelsBar(
-                            level = state.trainingLevel,
-                            suggestLess = state.suggestLessHelp,
-                            onSelect = viewModel::setTrainingLevel,
-                            onLessHelp = viewModel::lessHelp,
-                            onDismissSuggestion = viewModel::dismissHelpSuggestion,
-                        )
-                        FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
-                        LightBar(
-                            expanded = state.lightExpanded,
-                            brightness = state.brightness,
-                            contrast = state.contrast,
-                            onToggle = viewModel::toggleLight,
-                            onBrightness = viewModel::setBrightness,
-                            onContrast = viewModel::setContrast,
-                            onReset = viewModel::resetLight,
-                        )
-                        GridBar(
-                            visible = state.gridVisible,
-                            type = state.guideType,
-                            rows = state.gridRows,
-                            columns = state.gridCols,
-                            onToggle = viewModel::toggleGrid,
-                            onType = viewModel::setGuideType,
-                            onRows = viewModel::setGridRows,
-                            onColumns = viewModel::setGridCols,
-                        )
-                        StrobeBar(
-                            enabled = state.strobeOn,
-                            hz = state.strobeHz,
-                            onToggle = viewModel::toggleStrobe,
-                            onHz = viewModel::setStrobeHz,
-                        )
-                        StepsBar(
-                            active = state.stepIndex != null,
-                            steps = state.steps,
-                            stepIndex = state.stepIndex ?: 0,
-                            onToggle = viewModel::toggleSteps,
-                            onPrevious = viewModel::previousStep,
-                            onNext = viewModel::nextStep,
-                        )
-                        TimelapseBar(
-                            active = state.timelapseActive,
-                            intervalSec = state.timelapseIntervalSec,
-                            frameCount = state.timelapseCount,
-                            onToggle = viewModel::toggleTimelapse,
-                            onInterval = viewModel::setTimelapseInterval,
-                        )
-                        RecordBar(
-                            recording = cameraState.recording,
-                            onToggle = ::onRecordToggle,
-                        )
-                        BeforeAfterBar(
-                            saving = state.beforeAfterSaving,
-                            onClick = viewModel::captureBeforeAfter,
-                        )
-                        WallModeBar(onClick = viewModel::toggleWallMode)
-                    }
-                },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (!panelVisible) {
-                // Default state is the Figma hero deck, not the full panel.
-                AnimatedVisibility(
-                    visible = true,
-                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                ) {
-                    val filters = TraceFilter.entries
-                    Column {
-                        if (state.showTutorial) {
-                            TutorialCard(
-                                step = state.tutorialStep,
-                                onNext = viewModel::nextTutorialStep,
-                                onSkip = viewModel::skipTutorial,
-                                modifier = Modifier.padding(bottom = 12.dp),
-                            )
-                        }
-                        CleanTraceDeck(
+            val controlsPanel: @Composable (Modifier) -> Unit = { panelModifier ->
+                    TraceControls(
                         opacity = state.activeLayer?.opacity ?: state.opacity,
-                        activeLayerName = state.activeLayer?.name,
                         locked = state.locked,
                         torchOn = state.torchOn,
-                        filter = state.filter,
-                        gridVisible = state.gridVisible,
-                        gridLabel = if (state.gridVisible) {
-                            when (state.guideType) {
-                                app.picasso.tracer.domain.model.GuideType.GRID -> "${state.gridRows}×${state.gridCols}"
-                                else -> state.guideType.name
-                            }
-                        } else stringResource(R.string.guide_off).uppercase(),
-                        recording = cameraState.recording,
-                        anchorActive = state.overlayMode == app.picasso.tracer.camera.OverlayMode.AR,
-                        onToggleAnchor = { activity?.let { viewModel.toggleAnchorMode(it) } },
                         onOpacity = { value ->
                             val layer = state.activeLayer
                             if (layer != null) viewModel.setLayerOpacity(layer.id, value)
@@ -541,16 +386,131 @@ fun TraceScreen(
                         onFlipH = viewModel::flipHorizontal,
                         onFlipV = viewModel::flipVertical,
                         onToggleTorch = { viewModel.setTorch(!state.torchOn) },
-                        onToggleGrid = viewModel::toggleGrid,
                         onResetView = viewModel::resetView,
-                        onCycleFilter = {
-                            viewModel.setFilter(filters[(state.filter.ordinal + 1) % filters.size])
+                        extraContent = {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.padding(top = 4.dp),
+                            ) {
+                                if (state.showTutorial) {
+                                    TutorialCard(
+                                        step = state.tutorialStep,
+                                        onNext = viewModel::nextTutorialStep,
+                                        onSkip = viewModel::skipTutorial,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                                AnchorBar(
+                                    mode = state.overlayMode,
+                                    engine = state.arEngine,
+                                    status = state.arStatus,
+                                    isPro = state.proUnlocked,
+                                    onToggle = { activity?.let { viewModel.toggleAnchorMode(it) } },
+                                )
+                                LayersBar(
+                                    layers = state.layers,
+                                    activeLayerId = state.activeLayerId,
+                                    busy = state.layerBusy,
+                                    onSelect = viewModel::selectLayer,
+                                    onAdd = {
+                                        pickLayerImage.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                        )
+                                    },
+                                    onDelete = viewModel::deleteLayer,
+                                    onOpacity = viewModel::setLayerOpacity,
+                                    onRename = viewModel::renameLayer,
+                                )
+                                TrainingWheelsBar(
+                                    level = state.trainingLevel,
+                                    suggestLess = state.suggestLessHelp,
+                                    onSelect = viewModel::setTrainingLevel,
+                                    onLessHelp = viewModel::lessHelp,
+                                    onDismissSuggestion = viewModel::dismissHelpSuggestion,
+                                )
+                                FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
+                                LightBar(
+                                    expanded = state.lightExpanded,
+                                    brightness = state.brightness,
+                                    contrast = state.contrast,
+                                    onToggle = viewModel::toggleLight,
+                                    onBrightness = viewModel::setBrightness,
+                                    onContrast = viewModel::setContrast,
+                                    onReset = viewModel::resetLight,
+                                )
+                                GridBar(
+                                    visible = state.gridVisible,
+                                    type = state.guideType,
+                                    rows = state.gridRows,
+                                    columns = state.gridCols,
+                                    onToggle = viewModel::toggleGrid,
+                                    onType = viewModel::setGuideType,
+                                    onRows = viewModel::setGridRows,
+                                    onColumns = viewModel::setGridCols,
+                                )
+                                StrobeBar(
+                                    enabled = state.strobeOn,
+                                    hz = state.strobeHz,
+                                    onToggle = viewModel::toggleStrobe,
+                                    onHz = viewModel::setStrobeHz,
+                                )
+                                StepsBar(
+                                    active = state.stepIndex != null,
+                                    steps = state.steps,
+                                    stepIndex = state.stepIndex ?: 0,
+                                    onToggle = viewModel::toggleSteps,
+                                    onPrevious = viewModel::previousStep,
+                                    onNext = viewModel::nextStep,
+                                )
+                                TimelapseBar(
+                                    active = state.timelapseActive,
+                                    intervalSec = state.timelapseIntervalSec,
+                                    frameCount = state.timelapseCount,
+                                    onToggle = viewModel::toggleTimelapse,
+                                    onInterval = viewModel::setTimelapseInterval,
+                                )
+                                RecordBar(
+                                    recording = cameraState.recording,
+                                    onToggle = ::onRecordToggle,
+                                )
+                                BeforeAfterBar(
+                                    saving = state.beforeAfterSaving,
+                                    onClick = viewModel::captureBeforeAfter,
+                                )
+                                WallModeBar(onClick = viewModel::toggleWallMode)
+                                PicassoFilterChip(
+                                    selected = false,
+                                    onClick = viewModel::saveImage,
+                                    label = stringResource(R.string.save_image),
+                                )
+                            }
                         },
-                        onRecord = ::onRecordToggle,
-                        onSave = viewModel::saveImage,
-                            onExpand = { viewModel.onTutorialExpand(); panelVisible = true },
-                        )
-                    }
+                    modifier = panelModifier,
+                )
+            }
+            if (landscape) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .padding(10.dp),
+                ) {
+                    cameraCard(Modifier.weight(1f).fillMaxHeight())
+                    controlsPanel(Modifier.width(340.dp).fillMaxHeight())
+                }
+            } else {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                ) {
+                    cameraCard(Modifier.weight(0.9f).fillMaxWidth())
+                    controlsPanel(Modifier.weight(1.1f).fillMaxWidth())
                 }
             }
 

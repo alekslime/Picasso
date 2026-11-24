@@ -60,7 +60,6 @@ fun TraceControls(
     onFlipV: () -> Unit,
     onToggleTorch: () -> Unit,
     onResetView: () -> Unit,
-    onCollapse: () -> Unit,
     modifier: Modifier = Modifier,
     extraContent: @Composable () -> Unit = {},
 ) {
@@ -78,27 +77,10 @@ fun TraceControls(
         // Sections stack up (filters, light, grid, strobe, steps, record); scroll when tall.
         Column(
             modifier = Modifier
-                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Drag handle from the Figma panel.
-            Box(
-                modifier = Modifier
-                    .padding(top = 4.dp, bottom = 2.dp)
-                    .size(width = 40.dp, height = 4.dp)
-                    .background(PicassoSurface, CircleShape),
-            )
-            IconButton(
-                onClick = onCollapse,
-                modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    Icons.Default.ExpandMore,
-                    contentDescription = stringResource(R.string.collapse_panel),
-                    tint = PicassoPaperMuted,
-                )
-            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     stringResource(R.string.opacity).uppercase(),
