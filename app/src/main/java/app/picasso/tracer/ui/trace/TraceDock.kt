@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.animateColorAsState
@@ -14,7 +15,10 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -292,20 +296,40 @@ private fun ToolTab(
 ) {
     val container by animateColorAsState(if (selected) PicassoOchre else PicassoSurface, tween(180), label = "tabBg")
     val content by animateColorAsState(if (selected) PicassoInk else PicassoPaper, tween(180), label = "tabFg")
+    // Tab dips while pressed; the icon pops when the tab becomes selected (not on first composition).
+    val press = remember { MutableInteractionSource() }
+    val pressed by press.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "tabPress",
+    )
+    val pop = remember { Animatable(1f) }
+    var seen by remember { mutableStateOf(false) }
+    LaunchedEffect(selected) {
+        if (!seen) { seen = true; return@LaunchedEffect }
+        if (selected) {
+            pop.snapTo(0.7f)
+            pop.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+        }
+    }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
         modifier = modifier
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .clip(RoundedCornerShape(16.dp))
             .background(container)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = press, indication = LocalIndication.current, onClick = onClick)
             .padding(vertical = 10.dp),
     ) {
         Icon(
             icon,
             contentDescription = null,
             tint = content,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier
+                .size(20.dp)
+                .graphicsLayer { scaleX = pop.value; scaleY = pop.value },
         )
         Text(
             label,
