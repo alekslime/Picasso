@@ -20,4 +20,6 @@ data class PicassoSettings(
     val accountName: String? = null,
     /** One-time Pro purchase unlocked (also restored from Play on every connect). */
     val proUnlocked: Boolean = false,
+    /** Training wheels level the user last chose; null means training wheels are off. */
+    val trainingLevel: HelpLevel? = null,
 )

@@ -236,10 +236,17 @@ fun TraceScreen(
             val overlayVisible = !state.strobeOn || state.strobePhase
             state.project?.let { project ->
                 if (!overlayVisible) return@let
-                val stepBitmap = state.stepIndex?.let { index ->
-                    state.steps.getOrNull(index)?.bitmap
+                val training = state.trainingLevel
+                // Training wheels past the outline draw no reference at all.
+                if (training != null && !training.showsImage) return@let
+                val stepBitmap = if (training != null) {
+                    training.stepLayerIndex?.let { state.steps.getOrNull(it)?.bitmap }
+                        // Wait for the layer instead of flashing the full image.
+                        ?: if (training.stepLayerIndex != null) return@let else null
+                } else {
+                    state.stepIndex?.let { index -> state.steps.getOrNull(index)?.bitmap }
                 }
-                val stepActive = state.stepIndex != null
+                val stepActive = state.stepIndex != null || training != null
                 val filtered = state.filteredBitmap?.takeIf { !stepActive && state.filter.needsBitmap() }
                 val stepOrFiltered = stepBitmap ?: filtered
                 // Crossfade only on content/filter/step switches, never on gestures
@@ -261,8 +268,17 @@ fun TraceScreen(
                     )
                 }
             }
-            if (state.gridVisible) {
-                ProportionGrid(type = state.guideType, rows = state.gridRows, columns = state.gridCols)
+            val trainingGuides = state.trainingLevel == app.picasso.tracer.domain.model.HelpLevel.GUIDES
+            if (state.gridVisible || trainingGuides) {
+                ProportionGrid(
+                    type = if (trainingGuides && !state.gridVisible) {
+                        app.picasso.tracer.domain.model.GuideType.THIRDS
+                    } else {
+                        state.guideType
+                    },
+                    rows = state.gridRows,
+                    columns = state.gridCols,
+                )
             }
 
             // Figma viewfinder dressing: focus ring + marks over the camera area.
@@ -419,6 +435,13 @@ fun TraceScreen(
                             onDelete = viewModel::deleteLayer,
                             onOpacity = viewModel::setLayerOpacity,
                             onRename = viewModel::renameLayer,
+                        )
+                        TrainingWheelsBar(
+                            level = state.trainingLevel,
+                            suggestLess = state.suggestLessHelp,
+                            onSelect = viewModel::setTrainingLevel,
+                            onLessHelp = viewModel::lessHelp,
+                            onDismissSuggestion = viewModel::dismissHelpSuggestion,
                         )
                         FilterBar(selected = state.filter, onSelect = viewModel::setFilter)
                         LightBar(

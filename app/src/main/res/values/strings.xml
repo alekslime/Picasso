@@ -193,4 +193,19 @@
     <string name="loading">Loading…</string>
     <string name="error_loading_image">Could not load that image</string>
     <string name="camera_error">Camera unavailable: %1$s</string>
+    <string name="training_wheels">Training wheels</string>
+    <string name="training_off">Off</string>
+    <string name="training_full">Full image</string>
+    <string name="training_values">Values</string>
+    <string name="training_outline">Outline</string>
+    <string name="training_guides">Guides</string>
+    <string name="training_none">Nothing</string>
+    <string name="training_hint_full">Everything is shown. Start here.</string>
+    <string name="training_hint_values">Just the light and dark shapes.</string>
+    <string name="training_hint_outline">Just where the edges are.</string>
+    <string name="training_hint_guides">No image. Only thirds to place things by.</string>
+    <string name="training_hint_none">You, your paper and the camera.</string>
+    <string name="training_suggest">Nice work. Ready for less help next time?</string>
+    <string name="training_less_help">Try less help</string>
+    <string name="training_not_yet">Not yet</string>
 </resources>

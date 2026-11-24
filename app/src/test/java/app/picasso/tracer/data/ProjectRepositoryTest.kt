@@ -113,6 +113,10 @@ private class FakeSettingsRepository(
     override suspend fun setProUnlocked(unlocked: Boolean) {
         state.update { it.copy(proUnlocked = unlocked) }
     }
+
+    override suspend fun setTrainingLevel(level: app.picasso.tracer.domain.model.HelpLevel?) {
+        state.update { it.copy(trainingLevel = level) }
+    }
 }
 
 class ProjectRepositoryTest {

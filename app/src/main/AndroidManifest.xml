@@ -3,13 +3,6 @@
 
     <uses-feature android:name="android.hardware.camera.any" android:required="true" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <!-- ARCore is optional: AR anchor is one mode, the app works fully without it.
-         "optional" keeps Play Store availability on non-AR devices. -->
-    <meta-data android:name="com.google.ar.core" android:value="optional" />
-    <!-- Demo AdMob app ID (test ads). Replace with yours before release. -->
-    <meta-data
-        android:name="com.google.android.gms.ads.APPLICATION_ID"
-        android:value="ca-app-pub-3940256099942544~3347511713" />
     <!-- Needed only on API <= 28 to write recordings; MediaStore needs none on 29+. -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
@@ -24,6 +17,13 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Picasso">
+        <!-- ARCore is optional: AR anchor is one mode, the app works fully without it.
+             "optional" keeps Play Store availability on non-AR devices. -->
+        <meta-data android:name="com.google.ar.core" android:value="optional" />
+        <!-- Demo AdMob app ID (test ads). Replace with yours before release. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
         <activity
             android:name="app.picasso.tracer.MainActivity"
             android:launchMode="singleTop"

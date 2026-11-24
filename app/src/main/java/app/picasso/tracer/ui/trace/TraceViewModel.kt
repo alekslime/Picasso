@@ -21,6 +21,7 @@ import app.picasso.tracer.domain.model.OverlayLayer
 import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.GuideType
+import app.picasso.tracer.domain.model.HelpLevel
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.domain.repository.ProjectRepository
 import app.picasso.tracer.domain.repository.SettingsRepository
@@ -97,7 +98,15 @@ data class TraceUiState(
     val layers: List<OverlayLayer> = emptyList(),
     val activeLayerId: Long? = null,
     val layerBusy: Boolean = false,
+    // Training wheels: null = off. The level is remembered across sessions in settings.
+    val trainingLevel: HelpLevel? = null,
+    // Set after a finished tracing is saved: offers to take one level of help away.
+    val suggestLessHelp: Boolean = false,
 ) {
+    /** True when training wheels are on and there is still help left to remove. */
+    val canGraduate: Boolean
+        get() = trainingLevel?.canGraduate == true
+
     /** The image the overlay, filters, steps and wall mode currently use. */
     val activeImagePath: String?
         get() = layers.firstOrNull { it.id == activeLayerId }?.imagePath ?: project?.imagePath
@@ -163,6 +172,7 @@ class TraceViewModel @Inject constructor(
                     _uiState.update { it.copy(showTutorial = true, tutorialStep = 0) }
                 }
                 if (project.filter.needsBitmap()) applyBitmapFilter(project)
+                settings.settings.first().trainingLevel?.let { applyTrainingLevel(it, persist = false) }
             }
         }
         startAutoSave()
@@ -315,7 +325,7 @@ class TraceViewModel @Inject constructor(
             it.copy(
                 activeLayerId = layerId,
                 filteredBitmap = null,
-                filterLoading = it.filter.needsBitmap(),
+                filterLoading = it.filter.needsBitmap() && it.trainingLevel == null,
                 steps = emptyList(),
                 stepIndex = null,
                 stepsLoading = false,
@@ -323,7 +333,11 @@ class TraceViewModel @Inject constructor(
         }
         val state = _uiState.value
         val project = state.project ?: return
-        if (state.filter.needsBitmap()) applyBitmapFilter(project)
+        if (state.trainingLevel != null) {
+            if (state.trainingLevel.stepLayerIndex != null) ensureSteps()
+        } else if (state.filter.needsBitmap()) {
+            applyBitmapFilter(project)
+        }
     }
 
     private fun startTicker() {
@@ -550,14 +564,22 @@ class TraceViewModel @Inject constructor(
     fun setFilter(filter: TraceFilter) {
         val project = _uiState.value.project ?: return
         filterJob?.cancel()
-        // Filters and step layers are mutually exclusive views of the reference.
+        // Filters, step layers and training wheels are mutually exclusive views of the reference.
         if (!filter.needsBitmap()) {
             _uiState.update {
-                it.copy(filter = filter, filteredBitmap = null, filterLoading = false, stepIndex = null)
+                it.copy(
+                    filter = filter, filteredBitmap = null, filterLoading = false,
+                    stepIndex = null, trainingLevel = null, suggestLessHelp = false,
+                )
             }
             return
         }
-        _uiState.update { it.copy(filter = filter, filterLoading = true, stepIndex = null) }
+        _uiState.update {
+            it.copy(
+                filter = filter, filterLoading = true, stepIndex = null,
+                trainingLevel = null, suggestLessHelp = false,
+            )
+        }
         applyBitmapFilter(project)
     }
 
@@ -586,6 +608,7 @@ class TraceViewModel @Inject constructor(
                         it.copy(
                             beforeAfterSaving = false,
                             noticeRes = if (saved) R.string.before_after_saved else R.string.recording_failed,
+                            suggestLessHelp = saved && it.canGraduate,
                         )
                     }
                 }
@@ -613,6 +636,7 @@ class TraceViewModel @Inject constructor(
                         it.copy(
                             stillSaving = false,
                             noticeRes = if (saved) R.string.saved_image else R.string.recording_failed,
+                            suggestLessHelp = saved && it.canGraduate,
                         )
                     }
                 }
@@ -626,6 +650,9 @@ class TraceViewModel @Inject constructor(
     fun toggleSteps() {
         val state = _uiState.value
         val project = state.project ?: return
+        if (state.trainingLevel != null) {
+            _uiState.update { it.copy(trainingLevel = null, suggestLessHelp = false) }
+        }
         if (state.stepIndex != null) {
             stepsJob?.cancel()
             _uiState.update { it.copy(stepIndex = null, stepsLoading = false) }
@@ -647,6 +674,59 @@ class TraceViewModel @Inject constructor(
                     // Drop the result if the user switched images while it was building.
                     if (it.activeImagePath == path) it.copy(steps = steps, stepIndex = 0, stepsLoading = false)
                     else it
+                }
+            } catch (_: Exception) {
+                _uiState.update { it.copy(stepsLoading = false) }
+            }
+        }
+    }
+
+    /**
+     * Turns training wheels on at [level], or off with null. The processed reference layers
+     * are built once and shared with the step-by-step feature.
+     */
+    fun setTrainingLevel(level: HelpLevel?) = applyTrainingLevel(level, persist = true)
+
+    private fun applyTrainingLevel(level: HelpLevel?, persist: Boolean) {
+        stepsJob?.cancel()
+        filterJob?.cancel()
+        _uiState.update {
+            it.copy(
+                trainingLevel = level,
+                stepIndex = null,
+                stepsLoading = false,
+                filterLoading = false,
+                suggestLessHelp = false,
+            )
+        }
+        if (persist) viewModelScope.launch { settings.setTrainingLevel(level) }
+        if (level?.stepLayerIndex != null) ensureSteps()
+    }
+
+    /** Takes one level of help away; used by the "ready for less help?" suggestion. */
+    fun lessHelp() {
+        val level = _uiState.value.trainingLevel ?: return
+        setTrainingLevel(level.lessHelp())
+    }
+
+    fun dismissHelpSuggestion() {
+        _uiState.update { it.copy(suggestLessHelp = false) }
+    }
+
+    /** Builds the step layers for the active image without switching to the step view. */
+    private fun ensureSteps() {
+        val state = _uiState.value
+        val project = state.project ?: return
+        if (state.steps.isNotEmpty() || state.stepsLoading) return
+        _uiState.update { it.copy(stepsLoading = true) }
+        stepsJob = viewModelScope.launch {
+            try {
+                val path = state.activeImagePath ?: project.imagePath
+                val source = imageStore.loadBitmap(path)
+                    ?: throw IllegalStateException("Missing image")
+                val steps = stepGenerator.buildSteps(path, source)
+                _uiState.update {
+                    if (it.activeImagePath == path) it.copy(steps = steps, stepsLoading = false) else it
                 }
             } catch (_: Exception) {
                 _uiState.update { it.copy(stepsLoading = false) }

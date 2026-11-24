@@ -1,5 +1,6 @@
 package app.picasso.tracer.domain.repository
 
+import app.picasso.tracer.domain.model.HelpLevel
 import app.picasso.tracer.domain.model.PicassoSettings
 import app.picasso.tracer.domain.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -20,4 +21,7 @@ interface SettingsRepository {
     suspend fun clearAccount()
 
     suspend fun setProUnlocked(unlocked: Boolean)
+
+    /** Remembers the training wheels level; null turns training wheels off. */
+    suspend fun setTrainingLevel(level: HelpLevel?)
 }

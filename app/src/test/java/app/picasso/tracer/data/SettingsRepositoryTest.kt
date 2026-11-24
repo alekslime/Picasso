@@ -79,4 +79,14 @@ class SettingsRepositoryTest {
         assertEquals(8, settings.defaultGridRows)
         assertEquals(1, settings.defaultGridCols)
     }
+
+    @Test
+    fun `training level persists and clears`() = runTest {
+        val repo = repository()
+        assertEquals(null, repo.settings.first().trainingLevel)
+        repo.setTrainingLevel(app.picasso.tracer.domain.model.HelpLevel.OUTLINE)
+        assertEquals(app.picasso.tracer.domain.model.HelpLevel.OUTLINE, repo.settings.first().trainingLevel)
+        repo.setTrainingLevel(null)
+        assertEquals(null, repo.settings.first().trainingLevel)
+    }
 }
