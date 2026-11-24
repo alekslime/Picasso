@@ -326,7 +326,8 @@ fun HomeScreen(
             }
             itemsIndexed(library, key = { _, p -> p.id }) { index, project ->
                 ProjectCard(
-                    modifier = Modifier.entrance(7 + index),
+                    // Cards glide to their new slot on delete, sort and filter. Fade-in is off because entrance() does it.
+                    modifier = Modifier.animateItem(fadeInSpec = null).entrance(7 + index),
                     project = project,
                     onOpen = { onOpenProject(project.id) },
                     onToggleFavorite = {
