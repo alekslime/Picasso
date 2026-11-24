@@ -1,5 +1,7 @@
 package app.picasso.tracer.ui.trace
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
@@ -9,6 +11,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.ui.theme.PicassoInk
@@ -29,18 +32,21 @@ fun PicassoFilterChip(
     modifier: Modifier = Modifier,
     leadingIcon: @Composable (() -> Unit)? = null,
 ) {
+    // Material3 chips swap colours instantly; animate them so a selection reads as a change of state.
+    val container by animateColorAsState(if (selected) PicassoOchre else PicassoSurface, tween(160), label = "chipBg")
+    val content by animateColorAsState(if (selected) PicassoInk else PicassoPaper, tween(160), label = "chipFg")
     FilterChip(
         selected = selected,
         onClick = onClick,
         label = { Text(label) },
         leadingIcon = leadingIcon,
         colors = FilterChipDefaults.filterChipColors(
-            containerColor = PicassoSurface,
-            labelColor = PicassoPaper,
-            iconColor = PicassoPaper,
-            selectedContainerColor = PicassoOchre,
-            selectedLabelColor = PicassoInk,
-            selectedLeadingIconColor = PicassoInk,
+            containerColor = container,
+            labelColor = content,
+            iconColor = content,
+            selectedContainerColor = container,
+            selectedLabelColor = content,
+            selectedLeadingIconColor = content,
         ),
         border = null,
         shape = RoundedCornerShape(20.dp),

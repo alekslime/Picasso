@@ -1,5 +1,14 @@
 package app.picasso.tracer.ui.trace
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -155,18 +164,20 @@ private fun DockButton(
     active: Boolean,
     onClick: () -> Unit,
 ) {
+    val container by animateColorAsState(if (active) PicassoOchre else PicassoSurface, tween(160), label = "dockBg")
+    val tint by animateColorAsState(if (active) PicassoInk else PicassoPaper, tween(160), label = "dockTint")
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
-            .background(if (active) PicassoOchre else PicassoSurface)
+            .background(container)
             .clickable(onClick = onClick),
     ) {
         Icon(
             icon,
             contentDescription = description,
-            tint = if (active) PicassoInk else PicassoPaper,
+            tint = tint,
             modifier = Modifier.size(20.dp),
         )
     }
@@ -215,11 +226,26 @@ fun ToolsSheet(
                     .heightIn(min = 200.dp)
                     .verticalScroll(rememberScrollState()),
             ) {
-                when (tab) {
-                    0 -> image()
-                    1 -> guides()
-                    2 -> assist()
-                    else -> capture()
+                AnimatedContent(
+                    targetState = tab,
+                    transitionSpec = {
+                        val dir = if (targetState > initialState) 1 else -1
+                        (fadeIn(tween(200, delayMillis = 60)) +
+                            slideInHorizontally(tween(260)) { dir * it / 10 }) togetherWith
+                            (fadeOut(tween(110)) +
+                                slideOutHorizontally(tween(260)) { -dir * it / 10 }) using
+                            SizeTransform(clip = false) { _, _ -> tween(220) }
+                    },
+                    label = "toolsTab",
+                ) { current ->
+                    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        when (current) {
+                            0 -> image()
+                            1 -> guides()
+                            2 -> assist()
+                            else -> capture()
+                        }
+                    }
                 }
             }
         }
@@ -234,25 +260,27 @@ private fun ToolTab(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val container by animateColorAsState(if (selected) PicassoOchre else PicassoSurface, tween(180), label = "tabBg")
+    val content by animateColorAsState(if (selected) PicassoInk else PicassoPaper, tween(180), label = "tabFg")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) PicassoOchre else PicassoSurface)
+            .background(container)
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp),
     ) {
         Icon(
             icon,
             contentDescription = null,
-            tint = if (selected) PicassoInk else PicassoPaper,
+            tint = content,
             modifier = Modifier.size(20.dp),
         )
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
-            color = if (selected) PicassoInk else PicassoPaper,
+            color = content,
             maxLines = 1,
         )
     }
