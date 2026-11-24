@@ -1,89 +1,135 @@
 ![Picasso](assets/readme-banner.png)
 
-# Picasso
+<p align="center">
+  <b>Trace anything, freehand.</b><br>
+  A live camera under a translucent reference image, so you can draw it onto paper.
+</p>
 
-Trace anything, freehand. Picasso shows the live camera under a translucent
-reference image so you can trace it onto paper — with filters, proportion
-guides, drawing steps, a compare flash, timelapse frames and recording.
+<p align="center">
+  <a href="https://github.com/alekslime/Picasso/releases"><img alt="Download" src="https://img.shields.io/badge/download-APK-E99A52?style=flat-square"></a>
+  <img alt="Android 8.0+" src="https://img.shields.io/badge/Android-8.0%2B-171717?style=flat-square">
+  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Compose-171717?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-171717?style=flat-square">
+</p>
 
-**Design:** Ink `#171717` · Surface `#242424` · Paper `#F1EBDD` · Ochre `#E99A52`
-— Manrope / Inter / JetBrains Mono, 20dp corners, minimal thin-line guides.
-Figma: https://www.figma.com/design/ljeyvNGO9gyLMxrjECzr7Z
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/screenshots/01-home.png" width="200"><br><sub>Library</sub></td>
+    <td align="center"><img src="assets/screenshots/02-trace.png" width="200"><br><sub>Trace</sub></td>
+    <td align="center"><img src="assets/screenshots/03-tools-image.png" width="200"><br><sub>Tools: Image</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/screenshots/04-tools-guides.png" width="200"><br><sub>Tools: Guides</sub></td>
+    <td align="center"><img src="assets/screenshots/05-training.png" width="200"><br><sub>Training wheels</sub></td>
+    <td align="center"><img src="assets/screenshots/06-settings.png" width="200"><br><sub>Settings</sub></td>
+  </tr>
+</table>
+
+## How it works
+
+1. **Pick a reference.** Choose a photo, take one, or start from a built-in sample.
+2. **Line it up.** Drag, pinch and rotate the overlay on the live camera, then lock it.
+3. **Draw.** Trace what you see onto paper. Fade the overlay, change its look, or add guides as you go.
+
+## Features
+
+**Trace**
+- Full-screen camera with a slim control dock: lock, flip, torch, reset and an opacity slider
+- A Tools sheet for everything else, grouped into four tabs so you only see what you need
+- Landscape layout with the dock beside the camera
+
+**Look**
+- Filters: original, grayscale, high contrast, outline, value study
+- Brightness and contrast tuning for tricky lighting
+- Layers: add extra references, swap between them, fade or rename each one
+
+**Guides**
+- Grid, thirds, golden ratio and diagonal guides, drawn as 1dp lines
+- Adjustable grid rows and columns
+
+**Learn**
+- **Training wheels:** the reference fades from the full image to values, outline, guides only, and finally nothing
+- Drawing steps that build the image up in stages
+- Compare flash to blink between your drawing and the reference
+
+**Capture**
+- Video recording with optional audio
+- Timelapse frames every 5, 10 or 30 seconds
+- Before/after image saved to your gallery
+- Wall mode: full-screen reference for projectors and TVs
+
+**AR anchor (beta)**
+- Keeps the overlay fixed on the paper as the phone moves
+
+**Library**
+- Samples, favorites, search, sort, rename and delete
+- "Continue last tracing" home-screen widget
+
+## Privacy
+
+Your work stays on your device. There is no server, no sync and no analytics.
+See [PRIVACY.md](PRIVACY.md).
 
 ## Download
 
-Grab the APK from [Releases](https://github.com/alekslime/Picasso/releases),
-or from CI artifacts on any green build. A copy is also kept at
-`apk/Picasso-debug-1.0.0.apk` in the repo.
+Grab the APK from [Releases](https://github.com/alekslime/Picasso/releases), or
+from CI artifacts on any green build.
 
-## Build
+Requires Android 8.0 (API 26) or newer.
+
+## Build from source
 
 ```sh
 ./gradlew testDebugUnitTest   # unit tests
 ./gradlew assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
+./gradlew installDebug        # install on a connected device
 ```
 
-JDK 17, Android SDK 36. 
+Needs JDK 17 and Android SDK 36. The app builds and runs without any API keys:
+ads, billing and sign-in degrade gracefully until you configure them.
 
-## Release
+## Project layout
+
+```
+app/src/main/java/app/picasso/tracer/
+├── ui/
+│   ├── home/          library and home screen
+│   ├── trace/         camera, dock, tools sheet, overlay, guides
+│   ├── settings/      theme, account, Pro, defaults
+│   ├── nav/           navigation
+│   └── theme/         colors, type, theme
+├── camera/            CameraX, ARCore anchor, motion tracking
+├── filters/           GPU and bitmap filters, step generator
+├── data/              Room database, image store, settings
+├── domain/            models and repository interfaces
+├── monetization/      ads, billing, Google sign-in
+├── widget/            home-screen widget
+└── di/                Hilt modules
+```
+
+Built with Jetpack Compose, Material 3, CameraX, ARCore, Room, DataStore and Hilt.
+
+## Design
+
+Ink `#171717` · Surface `#242424` · Paper `#F1EBDD` · Ochre `#E99A52`,
+set in Manrope, Inter and JetBrains Mono. Thin-line guides, rounded corners, a
+dark camera-first layout.
+[Figma file](https://www.figma.com/design/ljeyvNGO9gyLMxrjECzr7Z)
+
+## Docs
+
+- [Releasing and Play Store signing](docs/RELEASING.md)
+- [Ads, billing and sign-in setup](docs/MONETIZATION.md)
+- [Privacy policy](PRIVACY.md)
+
+## Updating the screenshots
+
+With a device or emulator connected and the debug build installed:
 
 ```sh
-git tag v1.1.0
-git push origin v1.1.0   # GitHub Actions builds and publishes the Release
+./scripts/screenshots.sh
 ```
 
-## Play Store release signing (one-time setup)
-
-Play takes a **signed `.aab`**, built automatically on tags once these repo
-secrets exist (Settings → Secrets → Actions). Nothing secret is committed.
-
-1. Generate the upload key (keep the passwords somewhere safe, e.g. a
-   password manager — losing them means a new app listing):
-   ```sh
-   keytool -genkeypair -v -keystore picasso-upload.jks -alias picasso \
-     -keyalg RSA -keysize 2048 -validity 9125
-   ```
-2. Enroll in **Play App Signing** in Play Console (Setup → App signing) —
-   Google then holds the real signing key and the upload key above can be
-   reset any time.
-3. Add the secrets: `PICASSO_KEYSTORE_BASE64` (`base64 -w0
-   picasso-upload.jks`), `PICASSO_KEYSTORE_PASSWORD`, `PICASSO_KEY_ALIAS`
-   (`picasso`), `PICASSO_KEY_PASSWORD`.
-4. Tag a release: the workflow uploads `app-release.aab` as an artifact —
-   download it and drop it on the Console's release track.
-
-Local release builds without the env vars stay unsigned (normal).
-
-## Monetization setup (ads, billing, login)
-
-The app compiles and runs without any of this — each backend degrades
-gracefully (test ads, sign-in disabled notice, billing unavailable notice).
-Fill these in before a store release:
-
-1. **Google sign-in**: Cloud Console → APIs & Services → Credentials →
-   create an **OAuth 2.0 Client ID of type Web application** (not Android).
-   Paste it as `google_server_client_id` in
-   `app/src/main/res/values/monetization.xml`.
-2. **AdMob**: create the app in the AdMob console, then a banner unit.
-   Replace the demo `APPLICATION_ID` in `AndroidManifest.xml` and
-   `admob_banner_id` in `monetization.xml`. Under AdMob → Privacy &
-   messaging, configure the EEA consent message (the app shows it via UMP).
-3. **Billing**: Play Console → Monetize → In-app products → create a
-   one-time product with ID `picasso_pro` (or change `pro_product_id` in
-   `monetization.xml` to match). Add license-test accounts under Setup →
-   License testing and test with those accounts first.
-4. **Account deletion** (Play requirement, already in-app): Settings →
-   Delete account erases the stored profile; the policy above states what
-   stays (on-device tracings) and why.
-
-## Highlights
-
-- Clean-camera trace deck with a full control panel one tap away
-- Filters: original, grayscale, high contrast, outline, value study
-- Guides: grid, thirds, golden ratio, diagonal (1dp thin lines)
-- AR anchor (beta): overlay stays on the paper as the phone moves
-- **Training wheels:** the reference fades out as you improve, from the full image to values, outline, guides only, and finally nothing
-- Overlay layers: add a reference, swap it with the base or trace over it, fade it or rename it
-- Timelapse frames, before/after gallery export, session recording
-- Library with samples, favorites, search, sort, rename/delete
-- "Continue last tracing" home-screen widget
+It walks you through each screen and saves PNGs to `assets/screenshots/`.
