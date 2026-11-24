@@ -190,14 +190,25 @@ private fun DockButton(
     }
     val container by animateColorAsState(if (active) PicassoOchre else PicassoSurface, tween(160), label = "dockBg")
     val tint by animateColorAsState(if (active) PicassoInk else PicassoPaper, tween(160), label = "dockTint")
+    // Every dock button dips while held and springs back on release; the lock's bounce stacks on top.
+    val press = remember { MutableInteractionSource() }
+    val pressed by press.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.88f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "dockPress",
+    )
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(44.dp)
-            .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
+            .graphicsLayer {
+                scaleX = scale.value * pressScale
+                scaleY = scale.value * pressScale
+            }
             .clip(CircleShape)
             .background(container)
-            .clickable(onClick = onClick),
+            .clickable(interactionSource = press, indication = LocalIndication.current, onClick = onClick),
     ) {
         AnimatedContent(
             targetState = icon,
