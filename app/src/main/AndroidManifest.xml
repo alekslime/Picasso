@@ -26,6 +26,7 @@
             android:value="ca-app-pub-3940256099942544~3347511713" />
         <activity
             android:name="app.picasso.tracer.MainActivity"
+            android:theme="@style/Theme.Picasso.Splash"
             android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="true">
