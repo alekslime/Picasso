@@ -62,6 +62,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -161,9 +162,17 @@ fun TraceScreen(
     var showAudioDialog by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
 
+    // Bumped whenever something finished successfully; drives the check-mark pulse over the camera.
+    var successTick by remember { mutableIntStateOf(0) }
     val noticeRes = state.noticeRes
     LaunchedEffect(noticeRes) {
         if (noticeRes != null) {
+            if (noticeRes == R.string.saved_image ||
+                noticeRes == R.string.before_after_saved ||
+                noticeRes == R.string.recording_saved
+            ) {
+                successTick++
+            }
             snackbar.showSnackbar(context.getString(noticeRes))
             viewModel.clearNotice()
         }
@@ -380,6 +389,8 @@ fun TraceScreen(
                             .align(Alignment.TopCenter)
                             .padding(top = 56.dp),
                     )
+
+                    SuccessPulse(trigger = successTick, modifier = Modifier.align(Alignment.Center))
                 }
             }
             var toolsOpen by remember { mutableStateOf(false) }
