@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Wipes the clip open from the left. Both paths must keep the same commands to interpolate. -->
+<!-- Wipes the clip open along an edge that leans like the stroke itself. It waits a beat before
+     starting so the splash has settled on screen. Both paths keep the same commands so they interpolate.
+     startOffset + duration stays under the 1000 ms limit for animated splash icons. -->
 <objectAnimator xmlns:android="http://schemas.android.com/apk/res/android"
     android:propertyName="pathData"
-    android:valueFrom="M0,0 L0,0 L0,108 L0,108 Z"
-    android:valueTo="M0,0 L108,0 L108,108 L0,108 Z"
+    android:valueFrom="M0,0 L-24,0 L0,108 L0,108 Z"
+    android:valueTo="M0,0 L108,0 L132,108 L0,108 Z"
     android:valueType="pathType"
+    android:startOffset="250"
     android:duration="650"
-    android:interpolator="@android:interpolator/fast_out_slow_in" />
+    android:interpolator="@interpolator/splash_decelerate" />

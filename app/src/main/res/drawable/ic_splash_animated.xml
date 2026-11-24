@@ -4,4 +4,7 @@
     <target
         android:name="reveal"
         android:animation="@animator/splash_reveal" />
+    <target
+        android:name="stroke"
+        android:animation="@animator/splash_fade" />
 </animated-vector>

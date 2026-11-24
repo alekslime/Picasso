@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_OPEN_PROJECT_ID = "app.picasso.tracer.OPEN_PROJECT_ID"
 
         /** How long the animated splash is held on Android 12+ so the stroke finishes drawing. */
-        private const val SPLASH_MIN_MS = 650L
+        private const val SPLASH_MIN_MS = 950L
     }
 
     override fun onNewIntent(intent: Intent) {
