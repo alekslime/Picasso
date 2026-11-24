@@ -1,5 +1,11 @@
 package app.picasso.tracer.ui.trace
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,36 +59,53 @@ fun TrainingWheelsBar(
                 )
             }
         }
-        if (level != null) {
-            Text(
-                stringResource(hintFor(level)),
-                style = MaterialTheme.typography.labelMedium,
-                color = PicassoPaperMuted,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-        }
-        if (suggestLess && level != null && level.canGraduate) {
-            Text(
-                stringResource(R.string.training_suggest),
-                style = MaterialTheme.typography.labelMedium,
-                color = PicassoPaper,
-                modifier = Modifier.padding(top = 10.dp),
-            )
+        AnimatedVisibility(visible = level != null) {
             Row(
-                modifier = Modifier.padding(top = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(top = 8.dp),
             ) {
-                PicassoFilterChip(
-                    selected = true,
-                    onClick = onLessHelp,
-                    label = stringResource(R.string.training_less_help),
+                // Dots track how much help is left: one per level, filled up to the current one.
+                PicassoStepDots(current = level?.ordinal ?: -1, count = HelpLevel.entries.size)
+                AnimatedContent(
+                    targetState = level,
+                    transitionSpec = { fadeIn(tween(200, delayMillis = 60)) togetherWith fadeOut(tween(100)) },
+                    label = "trainingHint",
+                ) { shown ->
+                    if (shown != null) {
+                        Text(
+                            stringResource(hintFor(shown)),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = PicassoPaperMuted,
+                        )
+                    }
+                }
+            }
+        }
+        AnimatedVisibility(visible = suggestLess && level != null && level.canGraduate) {
+            Column {
+                Text(
+                    stringResource(R.string.training_suggest),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PicassoPaper,
+                    modifier = Modifier.padding(top = 10.dp),
                 )
-                PicassoFilterChip(
-                    selected = false,
-                    onClick = onDismissSuggestion,
-                    label = stringResource(R.string.training_not_yet),
-                )
+                Row(
+                    modifier = Modifier.padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    PicassoFilterChip(
+                        selected = true,
+                        onClick = onLessHelp,
+                        label = stringResource(R.string.training_less_help),
+                    )
+                    PicassoFilterChip(
+                        selected = false,
+                        onClick = onDismissSuggestion,
+                        label = stringResource(R.string.training_not_yet),
+                    )
+                }
             }
         }
     }

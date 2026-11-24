@@ -18,6 +18,7 @@ import android.view.TextureView
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -311,14 +312,18 @@ fun TraceScreen(
                         )
                     }
 
-                    if (state.showTutorial) {
+                    AnimatedVisibility(
+                        visible = state.showTutorial,
+                        enter = slideInVertically(tween(320)) { it / 2 } + fadeIn(tween(260)),
+                        exit = slideOutVertically(tween(240)) { it / 2 } + fadeOut(tween(180)),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 12.dp),
+                    ) {
                         TutorialCard(
                             step = state.tutorialStep,
                             onNext = viewModel::nextTutorialStep,
                             onSkip = viewModel::skipTutorial,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 12.dp),
                         )
                     }
 

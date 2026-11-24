@@ -1,6 +1,23 @@
 package app.picasso.tracer.ui.trace
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
@@ -35,12 +53,6 @@ fun TutorialCard(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val (titleRes, bodyRes) = when (step) {
-        0 -> R.string.tutorial_1_title to R.string.tutorial_1_body
-        1 -> R.string.tutorial_2_title to R.string.tutorial_2_body
-        2 -> R.string.tutorial_3_title to R.string.tutorial_3_body
-        else -> R.string.tutorial_4_title to R.string.tutorial_4_body
-    }
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
@@ -50,21 +62,52 @@ fun TutorialCard(
             .background(PicassoSurface)
             .padding(20.dp),
     ) {
-        Text(
-            stringResource(R.string.tutorial_step, step + 1).uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            color = PicassoOchre,
-        )
-        Text(
-            stringResource(titleRes),
-            style = MaterialTheme.typography.titleMedium,
-            color = app.picasso.tracer.ui.theme.PicassoPaper,
-        )
-        Text(
-            stringResource(bodyRes),
-            style = MaterialTheme.typography.bodyMedium,
-            color = PicassoPaperMuted,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            AnimatedContent(
+                targetState = step,
+                transitionSpec = { fadeIn(tween(180, delayMillis = 60)) togetherWith fadeOut(tween(90)) },
+                label = "tutorialStepLabel",
+            ) { current ->
+                Text(
+                    stringResource(R.string.tutorial_step, current + 1).uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = PicassoOchre,
+                )
+            }
+            PicassoStepDots(current = step, count = 4)
+        }
+        AnimatedContent(
+            targetState = step,
+            transitionSpec = {
+                (fadeIn(tween(220, delayMillis = 70)) + slideInVertically(tween(260)) { it / 4 }) togetherWith
+                    (fadeOut(tween(110)) + slideOutVertically(tween(200)) { -it / 6 }) using
+                    SizeTransform(clip = false) { _, _ -> tween(220) }
+            },
+            label = "tutorialBody",
+        ) { current ->
+            val (titleRes, bodyRes) = when (current) {
+                0 -> R.string.tutorial_1_title to R.string.tutorial_1_body
+                1 -> R.string.tutorial_2_title to R.string.tutorial_2_body
+                2 -> R.string.tutorial_3_title to R.string.tutorial_3_body
+                else -> R.string.tutorial_4_title to R.string.tutorial_4_body
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    stringResource(titleRes),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = app.picasso.tracer.ui.theme.PicassoPaper,
+                )
+                Text(
+                    stringResource(bodyRes),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PicassoPaperMuted,
+                )
+            }
+        }
         Row(
             horizontalArrangement = Arrangement.End,
             modifier = Modifier.fillMaxWidth(),
@@ -81,8 +124,43 @@ fun TutorialCard(
                 ),
                 modifier = Modifier.height(48.dp),
             ) {
-                Text(stringResource(if (step >= 3) R.string.tutorial_done else R.string.tutorial_next))
+                Crossfade(targetState = step >= 3, label = "tutorialButton") { last ->
+                    Text(stringResource(if (last) R.string.tutorial_done else R.string.tutorial_next))
+                }
             }
+        }
+    }
+}
+
+/**
+ * Row of small dots: dots up to [current] fill with ochre and the current one stretches into a pill.
+ * Pass a negative [current] for "none selected".
+ */
+@Composable
+internal fun PicassoStepDots(current: Int, count: Int, modifier: Modifier = Modifier) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier,
+    ) {
+        repeat(count) { index ->
+            val width by animateDpAsState(
+                targetValue = if (index == current) 16.dp else 6.dp,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "dotWidth",
+            )
+            val color by animateColorAsState(
+                targetValue = if (index <= current) PicassoOchre else PicassoPaperMuted.copy(alpha = 0.4f),
+                animationSpec = tween(200),
+                label = "dotColor",
+            )
+            Box(
+                Modifier
+                    .height(6.dp)
+                    .width(width)
+                    .clip(CircleShape)
+                    .background(color),
+            )
         }
     }
 }
