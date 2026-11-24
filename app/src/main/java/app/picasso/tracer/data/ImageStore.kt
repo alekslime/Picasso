@@ -28,9 +28,23 @@ class ImageStore @Inject constructor(
 
     /** Persists [source] (gallery/camera uri) and returns the absolute path of the copy. */
     suspend fun persist(source: Uri): String = withContext(Dispatchers.IO) {
-        val bytes = context.contentResolver.openInputStream(source)?.use { it.readBytes() }
-            ?: throw IOException("Cannot open image")
-        persistBytes(bytes)
+        // Decode from the stream: the full file never sits in memory.
+        val probe = context.contentResolver.openInputStream(source)?.use { input ->
+            BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+                BitmapFactory.decodeStream(input, null, this)
+            }
+        } ?: throw IOException("Cannot open image")
+        val longest = max(probe.outWidth, probe.outHeight).toFloat()
+        val opts = BitmapFactory.Options().apply {
+            if (longest > MAX_STORED_DIMENSION) {
+                inSampleSize = (longest / MAX_STORED_DIMENSION).toInt().coerceAtLeast(2)
+            }
+        }
+        val bitmap = context.contentResolver.openInputStream(source)
+            ?.use { BitmapFactory.decodeStream(it, null, opts) }
+            ?: throw IOException("Cannot decode image")
+        saveBitmap(bitmap)
     }
 
     /** Persists a bundled sample from assets and returns the absolute path of the copy. */
@@ -63,13 +77,17 @@ class ImageStore @Inject constructor(
                 inSampleSize = (longest / MAX_STORED_DIMENSION).toInt().coerceAtLeast(2)
             }
         }
-        var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
             ?: throw IOException("Cannot decode image")
-        bitmap = applyExifOrientation(bitmap, bytes)
-        bitmap = downscale(bitmap, MAX_STORED_DIMENSION)
+        return saveBitmap(applyExifOrientation(bitmap, bytes))
+    }
+
+    private fun saveBitmap(bitmap: Bitmap): String {
+        val downscaled = downscale(bitmap, MAX_STORED_DIMENSION)
+        if (downscaled !== bitmap) bitmap.recycle()
         val dest = File(dir, "${UUID.randomUUID()}.jpg")
         FileOutputStream(dest).use { out ->
-            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)) {
+            if (!downscaled.compress(Bitmap.CompressFormat.JPEG, 92, out)) {
                 throw IOException("Cannot save image")
             }
         }
