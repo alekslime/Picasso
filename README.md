@@ -130,12 +130,12 @@ full image, values, outline, guides only, and finally nothing.
   <tr>
     <td align="center" width="33%"><img src="assets/readme/drag.gif" width="270" alt="Overlay dragged, pinched and rotated onto the paper with two fingers"><br><sub><b>Drag, pinch, rotate</b><br>Two fingers put it in place</sub></td>
     <td align="center" width="33%"><img src="assets/readme/layers.gif" width="270" alt="Reference layers stacking and swapping"><br><sub><b>Layers</b><br>Stack and swap references</sub></td>
-    <td align="center" width="33%"><img src="assets/readme/timelapse.gif" width="270" alt="Drawing replayed line by line with a progress bar"><br><sub><b>Timelapse</b><br>Replay your drawing line by line</sub></td>
+    <td align="center" width="33%"><img src="assets/readme/timelapse.gif" width="270" alt="Timelapse saving a frame every few seconds while the drawing grows"><br><sub><b>Timelapse</b><br>A still every 5, 10 or 30 seconds</sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><img src="assets/readme/before-after.gif" width="270" alt="Wipe slider between reference and finished drawing"><br><sub><b>Before / After</b><br>Wipe between reference and work</sub></td>
+    <td align="center" width="33%"><img src="assets/readme/before-after.gif" width="270" alt="One tap saving the reference and the drawing side by side to the gallery"><br><sub><b>Before / After</b><br>One tap saves reference | drawing</sub></td>
     <td align="center" width="33%"><img src="assets/readme/wall-mode.gif" width="270" alt="Reference scaling up to fill a wall"><br><sub><b>Wall mode</b><br>Fill the wall for projecting</sub></td>
-    <td align="center" width="33%"><img src="assets/readme/compare-flash.gif" width="270" alt="Flashing between reference and drawing"><br><sub><b>Compare flash</b><br>Flash between reference and drawing</sub></td>
+    <td align="center" width="33%"><img src="assets/readme/compare-flash.gif" width="270" alt="The reference overlay flashing on and off over the drawing"><br><sub><b>Compare flash</b><br>Flash the overlay on and off</sub></td>
   </tr>
 </table>
 
