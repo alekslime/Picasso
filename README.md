@@ -22,6 +22,7 @@ Picasso is an Android app that shows your live camera feed *under* a translucent
 - Adjustable overlay opacity, so the reference fades in and out over the paper
 - Overlay layers: add a reference, swap it with the base, trace over it, fade it, or rename it
 - AR anchor *(beta)*: the overlay stays fixed on the paper as you move the phone
+- **Training wheels:** the reference fades out as you improve, from the full image to values, outline, guides only, and finally nothing
 
 **See better**
 - Filters: original, grayscale, high contrast, outline, and value study
