@@ -17,7 +17,7 @@
   <img alt="Android 8.0+" src="https://img.shields.io/badge/Android-8.0%2B-171717?style=flat-square&logo=android&logoColor=E99A52">
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Compose-171717?style=flat-square&logo=kotlin&logoColor=E99A52">
   <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-171717?style=flat-square">
-  <img alt="No analytics" src="https://img.shields.io/badge/privacy-on--device-171717?style=flat-square">
+  <img alt="On-device" src="https://img.shields.io/badge/privacy-on--device-171717?style=flat-square">
 </p>
 
 <p align="center">
@@ -34,23 +34,22 @@
 
 <table>
   <tr>
-    <td align="center" width="33%"><img src="assets/screenshots/01-home.png" width="230"><br><sub><b>Library</b></sub></td>
-    <td align="center" width="33%"><img src="assets/screenshots/02-trace.png" width="230"><br><sub><b>Trace</b></sub></td>
-    <td align="center" width="33%"><img src="assets/screenshots/03-tools-image.png" width="230"><br><sub><b>Tools · Image</b></sub></td>
+    <td align="center" width="33%"><img src="assets/screenshots/01-home.png" width="230" alt="Library"><br><sub><b>Library</b></sub></td>
+    <td align="center" width="33%"><img src="assets/screenshots/02-trace.png" width="230" alt="Trace"><br><sub><b>Trace</b></sub></td>
+    <td align="center" width="33%"><img src="assets/screenshots/03-tools-image.png" width="230" alt="Tools, Image tab"><br><sub><b>Tools · Image</b></sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="assets/screenshots/04-tools-guides.png" width="230"><br><sub><b>Tools · Guides</b></sub></td>
-    <td align="center"><img src="assets/screenshots/05-training.png" width="230"><br><sub><b>Training wheels</b></sub></td>
-    <td align="center"><img src="assets/screenshots/06-settings.png" width="230"><br><sub><b>Settings</b></sub></td>
+    <td align="center"><img src="assets/screenshots/04-tools-guides.png" width="230" alt="Tools, Guides tab"><br><sub><b>Tools · Guides</b></sub></td>
+    <td align="center"><img src="assets/screenshots/05-training.png" width="230" alt="Training wheels"><br><sub><b>Training wheels</b></sub></td>
+    <td align="center"><img src="assets/screenshots/06-settings.png" width="230" alt="Settings"><br><sub><b>Settings</b></sub></td>
   </tr>
 </table>
 
 ## How it works
 
-| | | |
-|:---:|:---:|:---:|
-| **① Pick** | **② Line up** | **③ Draw** |
-| Choose a photo, take one, or start from a built-in sample. | Drag, pinch and rotate the overlay on the live camera, then lock it. | Trace what you see onto paper. Fade the overlay, change its look, or add guides as you go. |
+<p align="center">
+  <img src="assets/readme/how-it-works.svg" alt="Three steps: pick a reference, line it up on the live camera, then draw it on paper" width="100%">
+</p>
 
 ## Features
 
@@ -58,35 +57,41 @@
   <tr>
     <td width="50%" valign="top">
 
-### 📷 Trace
+<h3><img src="assets/readme/icon-trace.svg" height="24" align="absmiddle" alt=""> Trace</h3>
+
 - Full-screen camera with a slim dock: lock, flip, torch, reset and opacity
 - A Tools sheet for everything else, in four short tabs
 - Landscape layout with the dock beside the camera
 
-### 🎨 Look
+<h3><img src="assets/readme/icon-look.svg" height="24" align="absmiddle" alt=""> Look</h3>
+
 - Filters: original, grayscale, high contrast, outline, value study
 - Brightness and contrast for tricky lighting
 - Layers: add more references, swap, fade or rename each one
 
-### 📐 Guides
+<h3><img src="assets/readme/icon-guides.svg" height="24" align="absmiddle" alt=""> Guides</h3>
+
 - Grid, thirds, golden ratio and diagonals, drawn as 1dp lines
 - Adjustable grid rows and columns
 
     </td>
     <td width="50%" valign="top">
 
-### 🎓 Learn
-- **Training wheels:** the reference fades from full image to values, outline, guides only, and finally nothing
+<h3><img src="assets/readme/icon-learn.svg" height="24" align="absmiddle" alt=""> Learn</h3>
+
+- **Training wheels** that take help away as you improve (see below)
 - Drawing steps that build the image up in stages
 - Compare flash to blink between your drawing and the reference
 
-### 🎥 Capture
+<h3><img src="assets/readme/icon-capture.svg" height="24" align="absmiddle" alt=""> Capture</h3>
+
 - Video recording with optional audio
 - Timelapse frames every 5, 10 or 30 seconds
 - Before/after image saved to your gallery
 - Wall mode: a full-screen reference for projectors and TVs
 
-### 🧭 More
+<h3><img src="assets/readme/icon-more.svg" height="24" align="absmiddle" alt=""> More</h3>
+
 - **AR anchor (beta):** keeps the overlay fixed on the paper as the phone moves
 - **Library:** samples, favorites, search, sort, rename, delete
 - A home-screen widget to continue your last tracing
@@ -94,6 +99,15 @@
     </td>
   </tr>
 </table>
+
+### Training wheels
+
+Start with the full reference, then let the app fade it out as you get better:
+full image, values, outline, guides only, and finally nothing.
+
+<p align="center">
+  <img src="assets/readme/training-wheels.svg" alt="Training wheels levels from most to least help: full image, values, outline, guides only, nothing" width="100%">
+</p>
 
 ## Privacy
 
@@ -150,10 +164,9 @@ app/src/main/java/app/picasso/tracer/
 
 <br>
 
-<img alt="Ink" src="https://img.shields.io/badge/Ink-%23171717-171717?style=for-the-badge">
-<img alt="Surface" src="https://img.shields.io/badge/Surface-%23242424-242424?style=for-the-badge">
-<img alt="Paper" src="https://img.shields.io/badge/Paper-%23F1EBDD-F1EBDD?style=for-the-badge&labelColor=F1EBDD&color=F1EBDD&logoColor=171717">
-<img alt="Ochre" src="https://img.shields.io/badge/Ochre-%23E99A52-E99A52?style=for-the-badge">
+<img src="assets/readme/palette.svg" alt="Picasso palette: Ink 171717, Surface 242424, Paper F1EBDD, Ochre E99A52" width="100%">
+
+<br>
 
 Set in Manrope, Inter and JetBrains Mono. Thin-line guides, rounded corners and a
 dark, camera-first layout. See the [Figma file](https://www.figma.com/design/ljeyvNGO9gyLMxrjECzr7Z).
