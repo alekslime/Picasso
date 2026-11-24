@@ -90,7 +90,11 @@ import java.util.Date
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -731,8 +735,16 @@ private fun EmptyProjects() {
             .padding(vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        // Slow bob so the empty screen feels alive without pulling attention from the sample row.
+        val bob by rememberInfiniteTransition(label = "emptyBob").animateFloat(
+            initialValue = -4f,
+            targetValue = 4f,
+            animationSpec = infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "emptyBobOffset",
+        )
         Box(
             modifier = Modifier
+                .graphicsLayer { translationY = bob.dp.toPx() }
                 .size(72.dp)
                 .background(
                     MaterialTheme.colorScheme.secondaryContainer,
