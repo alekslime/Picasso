@@ -83,6 +83,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.picasso.tracer.MainActivity
 import app.picasso.tracer.R
+import kotlinx.coroutines.delay
 import app.picasso.tracer.camera.ArEngine
 import app.picasso.tracer.camera.OverlayMode
 import app.picasso.tracer.domain.model.TraceFilter
@@ -164,6 +165,18 @@ fun TraceScreen(
 
     // Bumped whenever something finished successfully; drives the check-mark pulse over the camera.
     var successTick by remember { mutableIntStateOf(0) }
+    // A timelapse "finishes" when it stops after capturing at least one frame this run. The short wait
+    // means an interval change (which stops and restarts it) doesn't count as finishing.
+    var timelapseStartCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(state.timelapseActive) {
+        if (state.timelapseActive) {
+            timelapseStartCount = state.timelapseCount
+        } else if (state.timelapseCount > timelapseStartCount) {
+            delay(200)
+            timelapseStartCount = state.timelapseCount
+            successTick++
+        }
+    }
     val noticeRes = state.noticeRes
     LaunchedEffect(noticeRes) {
         if (noticeRes != null) {
