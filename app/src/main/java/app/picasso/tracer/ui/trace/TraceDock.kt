@@ -2,6 +2,10 @@ package app.picasso.tracer.ui.trace
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -49,6 +53,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -56,6 +63,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -114,6 +122,7 @@ fun TraceDock(
                     description = stringResource(if (locked) R.string.unlock_overlay else R.string.lock_overlay),
                     active = locked,
                     onClick = { toggled(onToggleLock) },
+                    bounce = true,
                 )
                 DockButton(Icons.Default.SwapHoriz, stringResource(R.string.flip_horizontal), false, onFlipH)
                 DockButton(Icons.Default.SwapVert, stringResource(R.string.flip_vertical), false, onFlipV)
@@ -163,23 +172,44 @@ private fun DockButton(
     description: String,
     active: Boolean,
     onClick: () -> Unit,
+    bounce: Boolean = false,
 ) {
+    // Squeeze, then spring back whenever the state flips (not on first composition).
+    val scale = remember { Animatable(1f) }
+    var seen by remember { mutableStateOf(false) }
+    LaunchedEffect(active) {
+        if (!seen) { seen = true; return@LaunchedEffect }
+        if (bounce) {
+            scale.snapTo(0.78f)
+            scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+        }
+    }
     val container by animateColorAsState(if (active) PicassoOchre else PicassoSurface, tween(160), label = "dockBg")
     val tint by animateColorAsState(if (active) PicassoInk else PicassoPaper, tween(160), label = "dockTint")
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(44.dp)
+            .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
             .clip(CircleShape)
             .background(container)
             .clickable(onClick = onClick),
     ) {
-        Icon(
-            icon,
-            contentDescription = description,
-            tint = tint,
-            modifier = Modifier.size(20.dp),
-        )
+        AnimatedContent(
+            targetState = icon,
+            transitionSpec = {
+                (fadeIn(tween(120, delayMillis = 40)) + scaleIn(tween(180), initialScale = 0.6f)) togetherWith
+                    fadeOut(tween(80))
+            },
+            label = "dockIcon",
+        ) { current ->
+            Icon(
+                current,
+                contentDescription = description,
+                tint = tint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 
