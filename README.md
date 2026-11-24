@@ -119,6 +119,16 @@ full image, values, outline, guides only, and finally nothing.
   <img src="assets/readme/training-wheels.svg" alt="Training wheels levels from most to least help: full image, values, outline, guides only, nothing" width="100%">
 </p>
 
+### In motion
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="assets/readme/filters.gif" width="270" alt="Filters cycling through original, grayscale, high contrast, outline and value study"><br><sub><b>Filters</b><br>Five looks, one tap each</sub></td>
+    <td align="center" width="33%"><img src="assets/readme/guides.gif" width="270" alt="Grid, thirds, golden ratio and diagonal guides drawing over a scene"><br><sub><b>Guides</b><br>Grid, thirds, golden ratio, diagonals</sub></td>
+    <td align="center" width="33%"><img src="assets/readme/ar-anchor.gif" width="270" alt="Classic overlay drifting off the paper while the AR anchor overlay stays on it as the phone moves"><br><sub><b>AR anchor (beta)</b><br>The overlay stays on the paper</sub></td>
+  </tr>
+</table>
+
 ## Privacy
 
 > Your work stays on your device. No server, no sync, no analytics.
