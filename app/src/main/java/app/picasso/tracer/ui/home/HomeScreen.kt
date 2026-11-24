@@ -87,6 +87,20 @@ import coil.compose.AsyncImage
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -187,25 +201,27 @@ fun HomeScreen(
                 .padding(padding),
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                NewTracingRow(
-                    creating = creating,
-                    onPick = {
-                        pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    },
-                    onCapture = {
-                        val file = File(
-                            File(context.cacheDir, "images").apply { mkdirs() },
-                            "capture-${System.currentTimeMillis()}.jpg",
-                        )
-                        val uri = FileProvider.getUriForFile(
-                            context,
-                            "${context.packageName}.fileprovider",
-                            file,
-                        )
-                        photoUri = uri
-                        takePhoto.launch(uri)
-                    },
-                )
+                Box(Modifier.fillMaxWidth().entrance(0)) {
+                    NewTracingRow(
+                        creating = creating,
+                        onPick = {
+                            pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                        onCapture = {
+                            val file = File(
+                                File(context.cacheDir, "images").apply { mkdirs() },
+                                "capture-${System.currentTimeMillis()}.jpg",
+                            )
+                            val uri = FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.fileprovider",
+                                file,
+                            )
+                            photoUri = uri
+                            takePhoto.launch(uri)
+                        },
+                    )
+                }
             }
             if (creating) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
@@ -216,7 +232,7 @@ fun HomeScreen(
             }
             resume?.let { project ->
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    ResumeCard(project = project, onOpen = { onOpenProject(project.id) })
+                    ResumeCard(project = project, onOpen = { onOpenProject(project.id) }, modifier = Modifier.entrance(1))
                 }
             }
             if (samples.isNotEmpty()) {
@@ -224,11 +240,11 @@ fun HomeScreen(
                     Text(
                         stringResource(R.string.try_sample),
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(top = 8.dp),
+                        modifier = Modifier.padding(top = 8.dp).entrance(2),
                     )
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.entrance(3)) {
                         items(samples) { item ->
                             SampleCard(
                                 item = item,
@@ -249,7 +265,8 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        .padding(top = 8.dp)
+                        .entrance(4),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -271,6 +288,7 @@ fun HomeScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.entrance(5),
                     ) {
                         OutlinedTextField(
                             value = query,
@@ -292,7 +310,7 @@ fun HomeScreen(
                     }
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.entrance(6)) {
                         FilterChip(
                             selected = !favoritesOnly,
                             onClick = { viewModel.setFavoritesOnly(false) },
@@ -306,8 +324,9 @@ fun HomeScreen(
                     }
                 }
             }
-            items(library, key = { it.id }) { project ->
+            itemsIndexed(library, key = { _, p -> p.id }) { index, project ->
                 ProjectCard(
+                    modifier = Modifier.entrance(7 + index),
                     project = project,
                     onOpen = { onOpenProject(project.id) },
                     onToggleFavorite = {
@@ -394,9 +413,13 @@ private fun NewTracingRow(
 private fun ResumeCard(
     project: Project,
     onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val press = remember { MutableInteractionSource() }
     Card(
         onClick = onOpen,
+        interactionSource = press,
+        modifier = modifier.pressScale(press),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -450,14 +473,16 @@ private fun SampleCard(
     enabled: Boolean,
     onSelect: () -> Unit,
 ) {
+    val press = remember { MutableInteractionSource() }
     Card(
         onClick = onSelect,
         enabled = enabled,
+        interactionSource = press,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
-        modifier = Modifier.width(140.dp),
+        modifier = Modifier.width(140.dp).pressScale(press),
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
             AsyncImage(
@@ -533,10 +558,14 @@ private fun ProjectCard(
     onToggleFavorite: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    val press = remember { MutableInteractionSource() }
     Card(
         onClick = onOpen,
+        interactionSource = press,
+        modifier = modifier.pressScale(press),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -694,5 +723,42 @@ private fun EmptyProjects() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+/**
+ * Fades and lifts a home item into place once, staggered by [index]. The flag is saved, so scrolling an
+ * item back into view or returning from another screen doesn't replay it.
+ */
+@Composable
+private fun Modifier.entrance(index: Int): Modifier {
+    var played by rememberSaveable { mutableStateOf(false) }
+    val progress = remember { Animatable(if (played) 1f else 0f) }
+    LaunchedEffect(Unit) {
+        if (!played) {
+            delay(index.coerceAtMost(10) * 45L)
+            progress.animateTo(1f, tween(320, easing = FastOutSlowInEasing))
+            played = true
+        }
+    }
+    val lift = with(LocalDensity.current) { 16.dp.toPx() }
+    return graphicsLayer {
+        alpha = progress.value
+        translationY = (1f - progress.value) * lift
+    }
+}
+
+/** Shrinks slightly while pressed and springs back on release. */
+@Composable
+private fun Modifier.pressScale(source: InteractionSource): Modifier {
+    val pressed by source.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.97f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "pressScale",
+    )
+    return graphicsLayer {
+        scaleX = scale
+        scaleY = scale
     }
 }
