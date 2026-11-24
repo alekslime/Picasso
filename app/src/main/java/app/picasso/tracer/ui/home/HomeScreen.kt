@@ -87,6 +87,7 @@ import coil.compose.AsyncImage
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -600,14 +601,7 @@ private fun ProjectCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                IconButton(onClick = onToggleFavorite) {
-                    Icon(
-                        if (project.favorite) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = stringResource(R.string.toggle_favorite),
-                        tint = if (project.favorite) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                FavoriteStar(favorite = project.favorite, onClick = onToggleFavorite)
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.project_options))
@@ -625,6 +619,42 @@ private fun ProjectCard(
                 }
             }
         }
+    }
+}
+
+/** Star that pops when favorited, dips when unfavorited, and fades its colour either way. */
+@Composable
+private fun FavoriteStar(favorite: Boolean, onClick: () -> Unit) {
+    val scale = remember { Animatable(1f) }
+    var firstRun by remember { mutableStateOf(true) }
+    LaunchedEffect(favorite) {
+        if (firstRun) {
+            firstRun = false
+            return@LaunchedEffect
+        }
+        if (favorite) {
+            scale.snapTo(0.6f)
+            scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+        } else {
+            scale.animateTo(0.82f, tween(80))
+            scale.animateTo(1f, tween(140))
+        }
+    }
+    val tint by animateColorAsState(
+        targetValue = if (favorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(200),
+        label = "favoriteTint",
+    )
+    IconButton(onClick = onClick) {
+        Icon(
+            if (favorite) Icons.Default.Star else Icons.Default.StarBorder,
+            contentDescription = stringResource(R.string.toggle_favorite),
+            tint = tint,
+            modifier = Modifier.graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            },
+        )
     }
 }
 
