@@ -44,8 +44,22 @@ class ImageStore @Inject constructor(
         val bitmap = context.contentResolver.openInputStream(source)
             ?.use { BitmapFactory.decodeStream(it, null, opts) }
             ?: throw IOException("Cannot decode image")
-        saveBitmap(bitmap)
+        saveBitmap(applyExifOrientation(bitmap, readOrientation(source)))
     }
+
+    /** Reads the EXIF orientation of the stream at [source]; missing tags mean "normal". */
+    private fun readOrientation(source: Uri): Int =
+        context.contentResolver.openInputStream(source)?.use { readOrientation(it) }
+            ?: ExifInterface.ORIENTATION_NORMAL
+
+    /** Reads the EXIF orientation from [input]; missing or unreadable tags mean "normal". */
+    private fun readOrientation(input: java.io.InputStream): Int =
+        runCatching {
+            ExifInterface(input).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL,
+            )
+        }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
 
     /** Persists a bundled sample from assets and returns the absolute path of the copy. */
     suspend fun persistAsset(assetPath: String): String = withContext(Dispatchers.IO) {
@@ -79,8 +93,17 @@ class ImageStore @Inject constructor(
         }
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
             ?: throw IOException("Cannot decode image")
-        return saveBitmap(applyExifOrientation(bitmap, bytes))
+        return saveBitmap(applyExifOrientation(bitmap, readOrientation(bytes)))
     }
+
+    /** Reads the EXIF orientation from [bytes]; missing or unreadable tags mean "normal". */
+    private fun readOrientation(bytes: ByteArray): Int =
+        runCatching {
+            ExifInterface(ByteArrayInputStream(bytes)).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL,
+            )
+        }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
 
     private fun saveBitmap(bitmap: Bitmap): String {
         val downscaled = downscale(bitmap, MAX_STORED_DIMENSION)
@@ -137,14 +160,8 @@ class ImageStore @Inject constructor(
     }
 }
 
-// Camera photos often carry EXIF rotation instead of rotated pixels; bake it in.
-private fun applyExifOrientation(bitmap: Bitmap, bytes: ByteArray): Bitmap {
-    val orientation = runCatching {
-        ExifInterface(ByteArrayInputStream(bytes)).getAttributeInt(
-            ExifInterface.TAG_ORIENTATION,
-            ExifInterface.ORIENTATION_NORMAL,
-        )
-    }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+/** Bakes the EXIF orientation into the pixels; the "normal" case returns the bitmap unchanged. */
+private fun applyExifOrientation(bitmap: Bitmap, orientation: Int): Bitmap {
     val matrix = Matrix()
     when (orientation) {
         ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
