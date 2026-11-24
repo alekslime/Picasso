@@ -1,3 +1,5 @@
+![Picasso](assets/readme-banner.png)
+
 # Picasso
 
 Trace anything, freehand. Picasso shows the live camera under a translucent
