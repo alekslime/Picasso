@@ -55,6 +55,8 @@ data class TraceUiState(
     val loading: Boolean = true,
     val errorRes: Int? = null,
     val transform: OverlayTransform = OverlayTransform.initial(),
+    /** Bumped when the transform jumps (reset, flip) so the overlay can animate it instead of snapping. */
+    val placementTick: Int = 0,
     val opacity: Float = 0.5f,
     val locked: Boolean = false,
     val filter: TraceFilter = TraceFilter.ORIGINAL,
@@ -547,17 +549,19 @@ class TraceViewModel @Inject constructor(
     }
 
     fun flipHorizontal() {
-        _uiState.update { it.copy(transform = it.transform.toggledFlipH()) }
+        _uiState.update { it.copy(transform = it.transform.toggledFlipH(), placementTick = it.placementTick + 1) }
     }
 
     fun flipVertical() {
-        _uiState.update { it.copy(transform = it.transform.toggledFlipV()) }
+        _uiState.update { it.copy(transform = it.transform.toggledFlipV(), placementTick = it.placementTick + 1) }
     }
 
     fun resetView() {
         viewModelScope.launch {
             val opacity = settings.settings.first().defaultOpacity
-            _uiState.update { it.copy(transform = OverlayTransform.initial(), opacity = opacity) }
+            _uiState.update {
+                it.copy(transform = OverlayTransform.initial(), opacity = opacity, placementTick = it.placementTick + 1)
+            }
         }
     }
 

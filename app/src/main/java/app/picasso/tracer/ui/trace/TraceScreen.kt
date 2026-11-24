@@ -269,6 +269,7 @@ fun TraceScreen(
                                 transform = viewModel.effectiveTransform(state),
                                 opacity = state.activeLayer?.opacity ?: state.opacity,
                                 locked = state.locked,
+                                animationKey = state.placementTick,
                                 // Light tuning applies on top of everything, including step layers.
                                 colorFilter = remember(filter, state.brightness, state.contrast) {
                                     GpuFilters.colorFilterFor(filter, state.brightness, state.contrast)
