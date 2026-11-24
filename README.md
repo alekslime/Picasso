@@ -30,6 +30,16 @@
 
 <br>
 
+<p align="center">
+  <img src="assets/readme/animation.gif" alt="Picasso: pick a reference, line it up, draw it, and fade out the training wheels" width="640">
+</p>
+
+<!-- After running ./scripts/demo.sh (writes assets/demo.gif), uncomment this:
+<p align="center">
+  <img src="assets/demo.gif" alt="Picasso in action: dragging the reference over the camera, locking it, fading it, then stepping through training wheels" width="300">
+</p>
+-->
+
 ## Screenshots
 
 <table>
@@ -115,6 +125,11 @@ full image, values, outline, guides only, and finally nothing.
 
 Read the full policy in [PRIVACY.md](PRIVACY.md).
 
+## License
+
+Copyright © 2026 alekslime. All rights reserved. The source is visible for
+reference only; see [LICENSE](LICENSE).
+
 ## Get Picasso
 
 Grab the APK from [**Releases**](https://github.com/alekslime/Picasso/releases),
@@ -174,7 +189,7 @@ dark, camera-first layout. See the [Figma file](https://www.figma.com/design/lje
 </details>
 
 <details>
-<summary><b>Updating the screenshots</b></summary>
+<summary><b>Updating the screenshots and demo GIF</b></summary>
 
 <br>
 
@@ -188,6 +203,13 @@ It installs the debug build if needed, starts the app from a clean state, taps
 through every screen on its own and saves the six PNGs to `assets/screenshots/`.
 Pass `--serial <id>` if more than one device is attached. It clears Picasso's app
 data first, so don't run it on a device with tracings you want to keep.
+
+The demo GIF works the same way and records itself while it drags, locks, fades
+and flips the overlay and steps through the training-wheels levels:
+
+```sh
+./scripts/demo.sh               # writes assets/demo.gif (needs ffmpeg)
+```
 
 </details>
 
