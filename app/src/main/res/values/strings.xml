@@ -53,6 +53,7 @@
     <string name="rel_today">Today</string>
     <string name="rel_yesterday">Yesterday</string>
     <string name="rel_days_ago">%1$dd ago</string>
+    <string name="overlay_unlocked_hint">Drag the reference image</string>
     <string name="toggle_favorite">Favorite</string>
     <string name="project_options">Project options</string>
     <string name="rename">Rename</string>
