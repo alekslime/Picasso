@@ -563,8 +563,7 @@ private fun ProjectCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                            .format(Date(project.updatedAt)),
+                        RelativeTime(project.updatedAt),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -594,6 +593,26 @@ private fun ProjectCard(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Library cards show relative times instead of the full timestamp. */
+@Composable
+private fun RelativeTime(millis: Long): String {
+    val seconds = (System.currentTimeMillis() - millis) / 1000
+    return when {
+        seconds < 60 -> stringResource(R.string.rel_seconds_ago, seconds.coerceAtLeast(0))
+        seconds < 3600 -> stringResource(R.string.rel_minutes_ago, seconds / 60)
+        seconds < 86_400 -> stringResource(R.string.rel_hours_ago, seconds / 3600)
+        else -> {
+            val days = seconds / 86_400
+            when {
+                days < 2 -> stringResource(if (days == 1L) R.string.rel_yesterday else R.string.rel_today)
+                days < 30 -> stringResource(R.string.rel_days_ago, days)
+                else -> DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                    .format(Date(millis))
             }
         }
     }

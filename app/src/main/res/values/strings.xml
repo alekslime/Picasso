@@ -47,6 +47,12 @@
     <string name="sort_name">Name A–Z</string>
     <string name="no_matches">Nothing matches that search.</string>
     <string name="no_favorites">No favorites yet. Tap the star on any tracing to pin it here.</string>
+    <string name="rel_seconds_ago">%1$ds ago</string>
+    <string name="rel_minutes_ago">%1$dm ago</string>
+    <string name="rel_hours_ago">%1$dh ago</string>
+    <string name="rel_today">Today</string>
+    <string name="rel_yesterday">Yesterday</string>
+    <string name="rel_days_ago">%1$dd ago</string>
     <string name="toggle_favorite">Favorite</string>
     <string name="project_options">Project options</string>
     <string name="rename">Rename</string>
