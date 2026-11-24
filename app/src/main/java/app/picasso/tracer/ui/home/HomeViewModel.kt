@@ -11,6 +11,7 @@ import app.picasso.tracer.monetization.Ads
 import app.picasso.tracer.data.Samples
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.repository.ProjectRepository
+import app.picasso.tracer.filters.FilterProcessor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,6 +39,7 @@ data class SampleItem(
 class HomeViewModel @Inject constructor(
     private val repository: ProjectRepository,
     private val imageStore: ImageStore,
+    private val filters: FilterProcessor,
     settings: SettingsRepository,
     val ads: Ads,
 ) : ViewModel() {
@@ -161,6 +163,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             repository.deleteProject(project.id)
             imageStore.delete(project.imagePath)
+            filters.evict(project.imagePath)
         }
     }
 

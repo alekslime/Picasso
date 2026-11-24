@@ -51,6 +51,6 @@ class FilterProcessor @Inject constructor() {
 
     companion object {
         const val WORKER_DIMENSION = 1024
-        private const val CACHE_ENTRIES = 12
+        private const val CACHE_ENTRIES = 8
     }
 }
