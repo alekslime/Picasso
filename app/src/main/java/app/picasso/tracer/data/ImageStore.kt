@@ -54,7 +54,16 @@ class ImageStore @Inject constructor(
     }
 
     private fun persistBytes(bytes: ByteArray): String {
-        var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        // Sample while decoding: images bigger than the stored size are never decoded full-size.
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        val longest = max(bounds.outWidth, bounds.outHeight).toFloat()
+        val opts = BitmapFactory.Options().apply {
+            if (longest > MAX_STORED_DIMENSION) {
+                inSampleSize = (longest / MAX_STORED_DIMENSION).toInt().coerceAtLeast(2)
+            }
+        }
+        var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
             ?: throw IOException("Cannot decode image")
         bitmap = applyExifOrientation(bitmap, bytes)
         bitmap = downscale(bitmap, MAX_STORED_DIMENSION)
