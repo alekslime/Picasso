@@ -50,6 +50,7 @@ import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.ThemeMode
 import app.picasso.tracer.ui.common.PicassoPill
 import app.picasso.tracer.ui.common.PicassoSectionHeader
+import app.picasso.tracer.ui.common.picassoAccentText
 import app.picasso.tracer.ui.common.picassoCard
 import kotlin.math.roundToInt
 
@@ -251,7 +252,7 @@ private fun GridStepper(
         IconButton(onClick = { onValue(value - 1) }) {
             Icon(Icons.Default.Remove, contentDescription = null)
         }
-        Text("$value", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        Text("$value", style = MaterialTheme.typography.titleSmall, color = picassoAccentText())
         IconButton(onClick = { onValue(value + 1) }) {
             Icon(Icons.Default.Add, contentDescription = null)
         }
@@ -321,7 +322,7 @@ private fun ProSection(
                 Text(
                     stringResource(R.string.pro_unlocked),
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = picassoAccentText(),
                 )
             } else {
                 Text(

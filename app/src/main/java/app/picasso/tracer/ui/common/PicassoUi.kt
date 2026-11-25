@@ -22,12 +22,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.picasso.tracer.ui.theme.PicassoOchreDeep
 
 /** Shared building blocks for the Home restyle, reused by Settings and the Trace screen. */
+
+/**
+ * Ochre for text. Plain Ochre on dark surfaces, a darker Ochre on light ones so small labels stay readable.
+ * Decorative fills (bars, rings, dots) keep using colorScheme.primary.
+ */
+@Composable
+fun picassoAccentText(): Color {
+    val scheme = MaterialTheme.colorScheme
+    return if (scheme.background.luminance() > 0.5f) PicassoOchreDeep else scheme.primary
+}
 
 /**
  * Section title with a short Ochre bar on its left. [prominent] uses the larger Home size;

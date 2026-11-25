@@ -88,6 +88,7 @@ import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.ui.common.PicassoPill
 import app.picasso.tracer.ui.common.PicassoSectionHeader
+import app.picasso.tracer.ui.common.picassoAccentText
 import app.picasso.tracer.ui.common.picassoCard
 import app.picasso.tracer.ui.theme.PicassoBlack
 import app.picasso.tracer.ui.theme.PicassoPaper
@@ -486,7 +487,7 @@ private fun ResumeCard(
                 Text(
                     stringResource(R.string.continue_last).uppercase(),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = picassoAccentText(),
                 )
                 Text(
                     project.name,
@@ -504,7 +505,7 @@ private fun ResumeCard(
                 Text(
                     stringResource(R.string.opacity_percent, opacityPercent(project.opacity)),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = picassoAccentText(),
                 )
             }
             Spacer(Modifier.width(12.dp))

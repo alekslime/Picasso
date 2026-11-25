@@ -11,6 +11,8 @@ val PicassoInk = Color(0xFF171717)
 val PicassoSurface = Color(0xFF242424)
 val PicassoPaper = Color(0xFFF1EBDD)
 val PicassoOchre = Color(0xFFE99A52)
+/** Darker Ochre for text on light surfaces: about 5:1 on Paper/cream, where plain Ochre is under 2:1. */
+val PicassoOchreDeep = Color(0xFF8A4F0E)
 val PicassoBlack = Color(0xFF0A0A0A)
 val PicassoPaperMuted = Color(0xFFA79F8E)
 val PicassoLine = Color(0xFF333333)
