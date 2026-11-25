@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -49,14 +50,16 @@ fun BrushStroke(modifier: Modifier = Modifier) {
     val penTip = remember { Path() }
     val measure = remember { PathMeasure() }
 
-    Canvas(modifier) {
-        val w = size.width
+    // Clipped to its own box so the pen and glow can never spill over the tagline or settings button.
+    Canvas(modifier.clipToBounds()) {
+        // The stroke fills 66% of the width; the rest is room for the pen that leans off its head.
+        val w = size.width * 0.66f
         val h = size.height
         path.rewind()
-        path.moveTo(0f, 0.78f * h)
-        path.cubicTo(0.18f * w, 0.62f * h, 0.30f * w, 0.28f * h, 0.50f * w, 0.22f * h)
-        path.cubicTo(0.64f * w, 0.18f * h, 0.60f * w, 0.60f * h, 0.72f * w, 0.74f * h)
-        path.cubicTo(0.82f * w, 0.86f * h, 0.92f * w, 0.70f * h, 0.98f * w, 0.60f * h)
+        path.moveTo(0f, 0.84f * h)
+        path.cubicTo(0.18f * w, 0.76f * h, 0.30f * w, 0.52f * h, 0.50f * w, 0.46f * h)
+        path.cubicTo(0.64f * w, 0.42f * h, 0.60f * w, 0.74f * h, 0.72f * w, 0.82f * h)
+        path.cubicTo(0.82f * w, 0.90f * h, 0.92f * w, 0.78f * h, w, 0.70f * h)
         measure.setPath(path, false)
 
         val alpha = fade.value
@@ -81,9 +84,9 @@ fun BrushStroke(modifier: Modifier = Modifier) {
         drawCircle(color.copy(alpha = alpha), radius = 3.5.dp.toPx(), center = head)
 
         // A simple pen with its tip on the head of the stroke, leaning up and to the right.
-        val half = 6.dp.toPx()
-        val tipLength = 16.dp.toPx()
-        rotate(degrees = -38f, pivot = head) {
+        val half = 4.5.dp.toPx()
+        val tipLength = 12.dp.toPx()
+        rotate(degrees = -32f, pivot = head) {
             penTip.rewind()
             penTip.moveTo(head.x, head.y)
             penTip.lineTo(head.x + tipLength, head.y - half)
@@ -93,7 +96,7 @@ fun BrushStroke(modifier: Modifier = Modifier) {
             drawRoundRect(
                 color = penColor.copy(alpha = 0.45f * alpha),
                 topLeft = Offset(head.x + tipLength, head.y - half),
-                size = Size(90.dp.toPx(), half * 2),
+                size = Size(30.dp.toPx(), half * 2),
                 cornerRadius = CornerRadius(half / 2),
             )
         }

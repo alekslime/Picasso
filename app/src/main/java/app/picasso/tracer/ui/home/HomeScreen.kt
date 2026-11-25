@@ -384,7 +384,7 @@ fun HomeScreen(
 @Composable
 private fun HomeHeader(onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxWidth().height(128.dp)) {
-        BrushStroke(Modifier.align(Alignment.BottomEnd).size(width = 180.dp, height = 84.dp))
+        BrushStroke(Modifier.align(Alignment.BottomEnd).size(width = 120.dp, height = 84.dp))
         Column(modifier = Modifier.align(Alignment.CenterStart)) {
             Text(
                 stringResource(R.string.home_title),
