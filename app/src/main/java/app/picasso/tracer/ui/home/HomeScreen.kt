@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Check
@@ -88,7 +89,6 @@ import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.ui.theme.PicassoBlack
-import app.picasso.tracer.ui.theme.PicassoInk
 import app.picasso.tracer.ui.theme.PicassoPaper
 import coil.compose.AsyncImage
 import java.io.File
@@ -544,10 +544,10 @@ private fun PlayRing(opacity: Float, modifier: Modifier = Modifier) {
     }
 }
 
-/** Tile backgrounds for the sample row: Ochre, dusty rose, slate. Dark Ink text reads on all three. */
+/** Accent per sample: only a faint wash behind the card and a small dot, so the line art stays the hero. */
 private val SampleTints = listOf(Color(0xFFE99A52), Color(0xFFD79A9A), Color(0xFF8FA5C2))
 
-/** Coloured sample tile: the line art sits on a soft gradient of the tile colour, name below. */
+/** Sample card: the line art on a clean 3:2 panel (uncropped), name and a small go-arrow underneath. */
 @Composable
 private fun SampleCard(
     item: SampleItem,
@@ -560,38 +560,50 @@ private fun SampleCard(
         onClick = onSelect,
         enabled = enabled,
         interactionSource = press,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent,
-            disabledContainerColor = Color.Transparent,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
-        modifier = Modifier.width(144.dp).pressScale(press),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.width(176.dp).pressScale(press),
     ) {
         Column(
             modifier = Modifier
-                .background(Brush.verticalGradient(listOf(tint, tint.copy(alpha = 0.72f))))
-                .padding(10.dp),
+                .background(Brush.verticalGradient(listOf(tint.copy(alpha = 0.16f), Color.Transparent)))
+                .padding(8.dp),
         ) {
             AsyncImage(
                 model = item.file,
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f)
+                    .aspectRatio(3f / 2f)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(PicassoPaper),
+                    .background(Color.White),
             )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                stringResource(item.sample.nameRes),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = PicassoInk,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 2.dp),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 6.dp, end = 4.dp, top = 10.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(tint))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(item.sample.nameRes),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
 }
