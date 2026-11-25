@@ -39,7 +39,6 @@
     <!-- Library -->
     <string name="library">Library</string>
     <string name="search_projects">Search tracings</string>
-    <string name="opacity_percent">%1$d%%</string>
     <string name="filter_all">All</string>
     <string name="filter_favorites">Favorites</string>
     <string name="sort">Sort</string>

@@ -114,13 +114,11 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.State
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
@@ -497,34 +495,27 @@ private fun ResumeCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                        .format(Date(project.updatedAt)),
+                    RelativeTime(project.updatedAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                 )
-                Text(
-                    stringResource(R.string.opacity_percent, opacityPercent(project.opacity)),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = picassoAccentText(),
-                )
             }
             Spacer(Modifier.width(12.dp))
-            PlayRing(opacity = project.opacity)
+            PlayRing()
         }
     }
 }
 
 /**
- * Play button for the Continue card. The arc fills clockwise from the top to the project's overlay opacity
- * when the card appears, and a soft glow behind the button breathes while the card sits idle.
+ * Play button for the Continue card. It's decorative: the ring draws once, clockwise from the top, when the card
+ * appears, and a soft glow behind the button breathes while the card sits idle. It doesn't represent progress.
  */
 @Composable
-private fun PlayRing(opacity: Float, modifier: Modifier = Modifier) {
+private fun PlayRing(modifier: Modifier = Modifier) {
     val ring = MaterialTheme.colorScheme.primary
     val onCard = MaterialTheme.colorScheme.onPrimaryContainer
-    val target = opacity.coerceIn(0f, 1f)
     val fill = remember { Animatable(0f) }
-    LaunchedEffect(target) { fill.animateTo(target, tween(900, easing = FastOutSlowInEasing)) }
+    LaunchedEffect(Unit) { fill.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
     val glow: State<Float> = if (rememberAnimationsEnabled()) {
         rememberInfiniteTransition(label = "playGlow").animateFloat(
             initialValue = 0.10f,
@@ -739,11 +730,6 @@ private fun ProjectCard(
                     }
                 }
             }
-            OpacityMeter(
-                opacity = project.opacity,
-                onContainer = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-            )
         }
     }
 }
@@ -770,42 +756,6 @@ private fun FilterBadge(filter: TraceFilter, modifier: Modifier = Modifier) {
             .background(PicassoBlack.copy(alpha = 0.55f))
             .padding(horizontal = 9.dp, vertical = 4.dp),
     )
-}
-
-/**
- * Thin Ochre bar plus percentage for a project's overlay opacity. The bar fills in from empty when the
- * card appears, and follows the system animation setting through the animation spec.
- */
-@Composable
-private fun OpacityMeter(opacity: Float, onContainer: Color, modifier: Modifier = Modifier) {
-    val target = opacity.coerceIn(0f, 1f)
-    val fill = remember { Animatable(0f) }
-    LaunchedEffect(target) { fill.animateTo(target, tween(650, easing = FastOutSlowInEasing)) }
-    val ochre = MaterialTheme.colorScheme.primary
-    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Canvas(Modifier.weight(1f).height(4.dp)) {
-            val radius = CornerRadius(size.height / 2)
-            drawRoundRect(ochre.copy(alpha = 0.22f), cornerRadius = radius)
-            val width = size.width * fill.value
-            if (width > 0f) {
-                drawRoundRect(
-                    brush = Brush.horizontalGradient(
-                        listOf(ochre, ochre.copy(alpha = 0.7f).compositeOver(Color.White)),
-                        startX = 0f,
-                        endX = size.width,
-                    ),
-                    size = Size(width, size.height),
-                    cornerRadius = radius,
-                )
-            }
-        }
-        Spacer(Modifier.width(8.dp))
-        Text(
-            stringResource(R.string.opacity_percent, opacityPercent(target)),
-            style = MaterialTheme.typography.labelSmall,
-            color = onContainer.copy(alpha = 0.8f),
-        )
-    }
 }
 
 /** Star that pops when favorited, dips when unfavorited, and fades its colour either way. */
