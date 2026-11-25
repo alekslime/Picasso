@@ -30,8 +30,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.OverlayLayer
-import app.picasso.tracer.ui.theme.PicassoPaper
-import app.picasso.tracer.ui.theme.PicassoPaperMuted
 import kotlin.math.roundToInt
 
 /**
@@ -103,7 +101,7 @@ fun LayersBar(
                 Text(
                     stringResource(R.string.opacity),
                     style = MaterialTheme.typography.labelMedium,
-                    color = PicassoPaperMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.widthIn(min = 72.dp),
                 )
                 PicassoSlider(
@@ -114,7 +112,7 @@ fun LayersBar(
                 Text(
                     "${(active.opacity * 100).roundToInt()}%",
                     style = MaterialTheme.typography.labelMedium,
-                    color = PicassoPaper,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.widthIn(min = 40.dp),
                 )
             }

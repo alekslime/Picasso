@@ -16,8 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import app.picasso.tracer.R
-import app.picasso.tracer.ui.theme.PicassoPaper
-import app.picasso.tracer.ui.theme.PicassoSurface
+import androidx.compose.material3.MaterialTheme
 
 /** One-tap full-screen reference for wall tracing with a projector or TV. */
 @Composable
@@ -29,8 +28,8 @@ fun WallModeBar(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = PicassoSurface,
-            contentColor = PicassoPaper,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ),
         modifier = modifier
             .fillMaxWidth()

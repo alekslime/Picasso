@@ -22,9 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.TraceFilter
-import app.picasso.tracer.ui.theme.PicassoOchre
-import app.picasso.tracer.ui.theme.PicassoPaper
-import app.picasso.tracer.ui.theme.PicassoPaperMuted
+import app.picasso.tracer.ui.common.picassoAccentText
 
 @Composable
 fun FilterBar(
@@ -138,20 +136,20 @@ private fun Stepper(
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = PicassoPaperMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = { onValue(value - 1) }) {
-            Icon(Icons.Default.Remove, contentDescription = null, tint = PicassoPaper)
+            Icon(Icons.Default.Remove, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
         }
         Text(
             "$value",
             style = MaterialTheme.typography.labelMedium,
-            color = PicassoOchre,
+            color = picassoAccentText(),
             modifier = Modifier.widthIn(min = 20.dp),
         )
         IconButton(onClick = { onValue(value + 1) }) {
-            Icon(Icons.Default.Add, contentDescription = null, tint = PicassoPaper)
+            Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

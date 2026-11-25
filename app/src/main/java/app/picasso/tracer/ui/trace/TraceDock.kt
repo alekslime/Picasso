@@ -77,11 +77,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.ui.theme.PicassoInk
-import app.picasso.tracer.ui.theme.PicassoLine
 import app.picasso.tracer.ui.theme.PicassoOchre
-import app.picasso.tracer.ui.theme.PicassoPaper
-import app.picasso.tracer.ui.theme.PicassoPaperMuted
-import app.picasso.tracer.ui.theme.PicassoSurface
 import kotlin.math.roundToInt
 
 /**
@@ -109,10 +105,10 @@ fun TraceDock(
         action()
     }
     Surface(
-        color = PicassoInk,
-        contentColor = PicassoPaper,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shape = RoundedCornerShape(28.dp),
-        border = BorderStroke(1.dp, PicassoLine),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = modifier,
     ) {
         Column(
@@ -152,7 +148,7 @@ fun TraceDock(
                 Icon(
                     Icons.Default.Opacity,
                     contentDescription = stringResource(R.string.opacity),
-                    tint = PicassoPaperMuted,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp),
                 )
                 PicassoSlider(
@@ -165,7 +161,7 @@ fun TraceDock(
                 Text(
                     "${(opacity * 100).roundToInt()}%",
                     style = MaterialTheme.typography.labelMedium,
-                    color = PicassoPaper,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.widthIn(min = 40.dp),
                 )
             }
@@ -191,8 +187,8 @@ private fun DockButton(
             scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
         }
     }
-    val container by animateColorAsState(if (active) PicassoOchre else PicassoSurface, tween(160), label = "dockBg")
-    val tint by animateColorAsState(if (active) PicassoInk else PicassoPaper, tween(160), label = "dockTint")
+    val container by animateColorAsState(if (active) PicassoOchre else MaterialTheme.colorScheme.surfaceContainerHigh, tween(160), label = "dockBg")
+    val tint by animateColorAsState(if (active) PicassoInk else MaterialTheme.colorScheme.onSurface, tween(160), label = "dockTint")
     // Every dock button dips while held and springs back on release; the lock's bounce stacks on top.
     val press = remember { MutableInteractionSource() }
     val pressed by press.collectIsPressedAsState()
@@ -248,8 +244,8 @@ fun ToolsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(),
-        containerColor = PicassoInk,
-        contentColor = PicassoPaper,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         scrimColor = Color.Black.copy(alpha = 0.2f),
     ) {
         Column(
@@ -308,8 +304,8 @@ private fun ToolTab(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val container by animateColorAsState(if (selected) PicassoOchre else PicassoSurface, tween(180), label = "tabBg")
-    val content by animateColorAsState(if (selected) PicassoInk else PicassoPaper, tween(180), label = "tabFg")
+    val container by animateColorAsState(if (selected) PicassoOchre else MaterialTheme.colorScheme.surfaceContainerHigh, tween(180), label = "tabBg")
+    val content by animateColorAsState(if (selected) PicassoInk else MaterialTheme.colorScheme.onSurface, tween(180), label = "tabFg")
     // Tab dips while pressed; the icon pops when the tab becomes selected (not on first composition).
     val press = remember { MutableInteractionSource() }
     val pressed by press.collectIsPressedAsState()

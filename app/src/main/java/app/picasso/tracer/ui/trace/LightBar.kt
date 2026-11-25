@@ -79,7 +79,7 @@ private fun LightSlider(
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = app.picasso.tracer.ui.theme.PicassoPaperMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.widthIn(min = 76.dp),
         )
         PicassoSlider(
@@ -92,7 +92,7 @@ private fun LightSlider(
         Text(
             valueLabel,
             style = MaterialTheme.typography.labelMedium,
-            color = app.picasso.tracer.ui.theme.PicassoPaper,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.widthIn(min = 52.dp),
         )
     }

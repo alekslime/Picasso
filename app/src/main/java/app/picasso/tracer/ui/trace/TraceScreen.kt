@@ -72,11 +72,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -105,6 +107,17 @@ fun TraceScreen(
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
+    // The top of this screen is the live camera (or a black wall view), so keep status-bar icons light
+    // even when the app theme is Light, and restore the previous style when leaving.
+    val view = LocalView.current
+    DisposableEffect(activity) {
+        val controller = activity?.window?.let { WindowCompat.getInsetsController(it, view) }
+        val previous = controller?.isAppearanceLightStatusBars
+        controller?.isAppearanceLightStatusBars = false
+        onDispose {
+            if (controller != null && previous != null) controller.isAppearanceLightStatusBars = previous
+        }
+    }
     val state by viewModel.uiState.collectAsState()
     val layerName = stringResource(R.string.layer_default_name, state.layers.size + 1)
     val pickLayerImage = rememberLauncherForActivityResult(

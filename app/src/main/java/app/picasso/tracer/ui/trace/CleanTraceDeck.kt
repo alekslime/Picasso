@@ -39,12 +39,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.TraceFilter
-import app.picasso.tracer.ui.theme.PicassoBlack
 import app.picasso.tracer.ui.theme.PicassoInk
 import app.picasso.tracer.ui.theme.PicassoOchre
 import app.picasso.tracer.ui.theme.PicassoPaper
-import app.picasso.tracer.ui.theme.PicassoPaperMuted
-import app.picasso.tracer.ui.theme.PicassoSurface
 import kotlin.math.roundToInt
 
 /**
@@ -82,7 +79,7 @@ fun CleanTraceDeck(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-            .background(PicassoBlack)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -106,7 +103,7 @@ fun CleanTraceDeck(
                     .weight(1f)
                     .height(48.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(PicassoSurface)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .clickable(onClick = onExpand)
                     .padding(horizontal = 12.dp),
             ) {
@@ -114,7 +111,7 @@ fun CleanTraceDeck(
                     activeLayerName?.let { "$it   ${(opacity * 100).roundToInt()}" }
                         ?: "${(opacity * 100).roundToInt()}%   ${filter.name}   $gridLabel",
                     style = MaterialTheme.typography.labelMedium,
-                    color = PicassoPaper,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
             DeckButton(
@@ -167,7 +164,7 @@ fun CleanTraceDeck(
             Text(
                 stringResource(R.string.opacity).uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                color = PicassoPaperMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.size(12.dp))
             PicassoSlider(
@@ -179,7 +176,7 @@ fun CleanTraceDeck(
             Text(
                 "${(opacity * 100).roundToInt()}%",
                 style = MaterialTheme.typography.labelMedium,
-                color = PicassoPaper,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
 
@@ -215,14 +212,14 @@ fun CleanTraceDeck(
                 modifier = Modifier
                     .size(76.dp)
                     .clip(CircleShape)
-                    .border(3.dp, PicassoPaper, CircleShape)
+                    .border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
                     .clickable(onClick = onRecord),
             ) {
                 Box(
                     modifier = Modifier
                         .size(54.dp)
                         .clip(CircleShape)
-                        .border(2.dp, PicassoPaper, CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
                         .background(if (recording) Color(0xFFC0392B) else Color.Transparent),
                 )
             }
@@ -233,18 +230,18 @@ fun CleanTraceDeck(
                 modifier = Modifier
                     .size(60.dp)
                     .clip(CircleShape)
-                    .background(PicassoSurface)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .clickable(onClick = onCycleFilter),
             ) {
                 Text(
                     "1×",
                     style = MaterialTheme.typography.labelMedium,
-                    color = PicassoPaper,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     stringResource(R.string.filters).uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = PicassoPaperMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -256,7 +253,7 @@ fun CleanTraceDeck(
             Icon(
                 Icons.Default.Refresh,
                 contentDescription = stringResource(R.string.reset_view),
-                tint = PicassoPaperMuted,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .size(20.dp)
                     .clickable(onClick = onResetView),
@@ -278,13 +275,13 @@ private fun DeckButton(
         modifier = Modifier
             .size(size.dp)
             .clip(CircleShape)
-            .background(if (active) PicassoOchre else PicassoSurface)
+            .background(if (active) PicassoOchre else MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClick = onClick),
     ) {
         Icon(
             icon,
             contentDescription = description,
-            tint = if (active) PicassoInk else PicassoPaper,
+            tint = if (active) PicassoInk else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(20.dp),
         )
     }

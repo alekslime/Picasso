@@ -39,8 +39,7 @@ import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.ui.theme.PicassoInk
 import app.picasso.tracer.ui.theme.PicassoOchre
-import app.picasso.tracer.ui.theme.PicassoPaperMuted
-import app.picasso.tracer.ui.theme.PicassoSurface
+import app.picasso.tracer.ui.common.picassoAccentText
 
 /**
  * First-trace tutorial: four minimal steps that complete by doing — gesture,
@@ -59,7 +58,7 @@ fun TutorialCard(
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(PicassoSurface)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(20.dp),
     ) {
         Row(
@@ -75,7 +74,7 @@ fun TutorialCard(
                 Text(
                     stringResource(R.string.tutorial_step, current + 1).uppercase(),
                     style = MaterialTheme.typography.labelMedium,
-                    color = PicassoOchre,
+                    color = picassoAccentText(),
                 )
             }
             PicassoStepDots(current = step, count = 4)
@@ -99,12 +98,12 @@ fun TutorialCard(
                 Text(
                     stringResource(titleRes),
                     style = MaterialTheme.typography.titleMedium,
-                    color = app.picasso.tracer.ui.theme.PicassoPaper,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     stringResource(bodyRes),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = PicassoPaperMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -150,7 +149,7 @@ internal fun PicassoStepDots(current: Int, count: Int, modifier: Modifier = Modi
                 label = "dotWidth",
             )
             val color by animateColorAsState(
-                targetValue = if (index <= current) PicassoOchre else PicassoPaperMuted.copy(alpha = 0.4f),
+                targetValue = if (index <= current) PicassoOchre else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                 animationSpec = tween(200),
                 label = "dotColor",
             )

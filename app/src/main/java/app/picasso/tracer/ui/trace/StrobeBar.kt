@@ -37,7 +37,7 @@ fun StrobeBar(
             Text(
                 stringResource(R.string.strobe_speed),
                 style = MaterialTheme.typography.labelMedium,
-                color = app.picasso.tracer.ui.theme.PicassoPaperMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             PicassoSlider(
                 value = hz,

@@ -39,9 +39,6 @@ import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.ui.theme.PicassoInk
 import app.picasso.tracer.ui.theme.PicassoOchre
-import app.picasso.tracer.ui.theme.PicassoPaper
-import app.picasso.tracer.ui.theme.PicassoPaperMuted
-import app.picasso.tracer.ui.theme.PicassoSurface
 import kotlin.math.roundToInt
 
 /**
@@ -69,8 +66,8 @@ fun TraceControls(
         action()
     }
     Surface(
-        color = PicassoInk,
-        contentColor = PicassoPaper,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.extraLarge,
         modifier = modifier,
     ) {
@@ -85,7 +82,7 @@ fun TraceControls(
                 Text(
                     stringResource(R.string.opacity).uppercase(),
                     style = MaterialTheme.typography.labelMedium,
-                    color = PicassoPaperMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.widthIn(min = 64.dp),
                 )
                 PicassoSlider(
@@ -96,7 +93,7 @@ fun TraceControls(
                 Text(
                     "${(opacity * 100).roundToInt()}%",
                     style = MaterialTheme.typography.labelMedium,
-                    color = PicassoPaper,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.widthIn(min = 44.dp),
                 )
             }
@@ -155,8 +152,8 @@ private fun CircularControl(
     FilledIconButton(
         onClick = onClick,
         colors = IconButtonDefaults.filledIconButtonColors(
-            containerColor = if (active) PicassoOchre else PicassoSurface,
-            contentColor = if (active) PicassoInk else PicassoPaper,
+            containerColor = if (active) PicassoOchre else MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = if (active) PicassoInk else MaterialTheme.colorScheme.onSurface,
         ),
         modifier = Modifier.size(48.dp),
     ) {

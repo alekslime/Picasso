@@ -39,11 +39,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import app.picasso.tracer.ui.theme.PicassoInk
-import app.picasso.tracer.ui.theme.PicassoLine
 import app.picasso.tracer.ui.theme.PicassoOchre
-import app.picasso.tracer.ui.theme.PicassoPaper
-import app.picasso.tracer.ui.theme.PicassoSurface
 import kotlin.math.roundToInt
+import app.picasso.tracer.ui.common.picassoAccentText
 
 /**
  * Figma chip: unselected = Surface/Paper, selected = Ochre/Ink.
@@ -59,10 +57,10 @@ fun PicassoFilterChip(
     leadingIcon: @Composable (() -> Unit)? = null,
 ) {
     // Material3 chips swap colours instantly; animate them so a selection reads as a change of state.
-    val container by animateColorAsState(if (selected) PicassoOchre else PicassoSurface, tween(160), label = "chipBg")
-    val content by animateColorAsState(if (selected) PicassoInk else PicassoPaper, tween(160), label = "chipFg")
+    val container by animateColorAsState(if (selected) PicassoOchre else MaterialTheme.colorScheme.surfaceContainerHigh, tween(160), label = "chipBg")
+    val content by animateColorAsState(if (selected) PicassoInk else MaterialTheme.colorScheme.onSurface, tween(160), label = "chipFg")
     // Hairline outline on idle chips, matching the pills on Home; it melts into the Ochre fill when selected.
-    val outline by animateColorAsState(if (selected) PicassoOchre else PicassoLine, tween(160), label = "chipOutline")
+    val outline by animateColorAsState(if (selected) PicassoOchre else MaterialTheme.colorScheme.outlineVariant, tween(160), label = "chipOutline")
     FilterChip(
         selected = selected,
         onClick = onClick,
@@ -118,9 +116,9 @@ fun PicassoSlider(
     LaunchedEffect(active) { if (active) lastStep[0] = stepOf(value) }
 
     val colors = SliderDefaults.colors(
-        thumbColor = PicassoPaper,
+        thumbColor = MaterialTheme.colorScheme.onSurface,
         activeTrackColor = PicassoOchre,
-        inactiveTrackColor = PicassoSurface,
+        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     )
     val label: ((Float) -> String)? = bubbleLabel
         ?: if (valueRange.start == 0f && valueRange.endInclusive == 1f) {
@@ -201,7 +199,7 @@ fun PicassoSectionLabel(text: String, modifier: Modifier = Modifier) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
-            color = PicassoOchre,
+            color = picassoAccentText(),
         )
     }
 }

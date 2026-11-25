@@ -21,8 +21,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.HelpLevel
-import app.picasso.tracer.ui.theme.PicassoPaper
-import app.picasso.tracer.ui.theme.PicassoPaperMuted
 
 /**
  * Training wheels: the reference fades from the full image down to nothing, one level
@@ -76,7 +74,7 @@ fun TrainingWheelsBar(
                         Text(
                             stringResource(hintFor(shown)),
                             style = MaterialTheme.typography.labelMedium,
-                            color = PicassoPaperMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -87,7 +85,7 @@ fun TrainingWheelsBar(
                 Text(
                     stringResource(R.string.training_suggest),
                     style = MaterialTheme.typography.labelMedium,
-                    color = PicassoPaper,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 Row(

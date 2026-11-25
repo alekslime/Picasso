@@ -1,13 +1,16 @@
 package app.picasso.tracer
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,7 +65,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         openProjectId = intent?.getLongExtra(EXTRA_OPEN_PROJECT_ID, -1L) ?: -1L
         PicassoWidgetProvider.refresh(this)
-        enableEdgeToEdge()
         setContent {
             val settings by settingsRepository.settings.collectAsState(PicassoSettings())
             val systemDark = isSystemInDarkTheme()
@@ -70,6 +72,21 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
                 ThemeMode.SYSTEM -> systemDark
+            }
+            // Bar icons follow the app's theme setting, not just the phone's: a Light app on a dark phone
+            // would otherwise get light icons on Paper.
+            DisposableEffect(darkTheme) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(
+                        Color.TRANSPARENT,
+                        Color.TRANSPARENT,
+                    ) { darkTheme },
+                    navigationBarStyle = SystemBarStyle.auto(
+                        Color.argb(0xE6, 0xFF, 0xFF, 0xFF),
+                        Color.argb(0x80, 0x1B, 0x1B, 0x1B),
+                    ) { darkTheme },
+                )
+                onDispose { }
             }
             PicassoTheme(darkTheme = darkTheme) {
                 PicassoNav(

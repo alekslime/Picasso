@@ -16,7 +16,6 @@ import app.picasso.tracer.R
 import app.picasso.tracer.camera.ArEngine
 import app.picasso.tracer.camera.ArStatus
 import app.picasso.tracer.camera.OverlayMode
-import app.picasso.tracer.ui.theme.PicassoPaperMuted
 
 /** Classic vs AR anchor mode. AR keeps the overlay on the paper as the phone moves. */
 @Composable
@@ -47,7 +46,7 @@ fun AnchorBar(
             Text(
                 stringResource(R.string.pro_tagline),
                 style = MaterialTheme.typography.bodySmall,
-                color = PicassoPaperMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (ar) {
@@ -61,7 +60,7 @@ fun AnchorBar(
             Text(
                 copy,
                 style = MaterialTheme.typography.bodySmall,
-                color = PicassoPaperMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

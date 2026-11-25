@@ -54,7 +54,7 @@ fun StepsBar(
             Text(
                 stringResource(steps[stepIndex.coerceIn(steps.indices)].nameRes),
                 style = MaterialTheme.typography.bodySmall,
-                color = app.picasso.tracer.ui.theme.PicassoPaperMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),

@@ -18,10 +18,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.ui.theme.PicassoOchre
-import app.picasso.tracer.ui.theme.PicassoPaper
-import app.picasso.tracer.ui.theme.PicassoSurface
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
 
 /** One-tap side-by-side (reference | drawing) saved to the gallery. */
 @Composable
@@ -35,11 +34,11 @@ fun BeforeAfterBar(
         enabled = !saving,
         shape = RoundedCornerShape(20.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = PicassoSurface,
-            contentColor = PicassoPaper,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             // Keep the button looking like itself while saving; the spinner shows the busy state.
-            disabledContainerColor = PicassoSurface,
-            disabledContentColor = PicassoPaper,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface,
         ),
         modifier = modifier
             .fillMaxWidth()

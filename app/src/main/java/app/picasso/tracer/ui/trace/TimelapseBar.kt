@@ -39,7 +39,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.ui.theme.PicassoOchre
-import app.picasso.tracer.ui.theme.PicassoPaper
 
 /**
  * Timelapse frames: stills every N seconds to Pictures/Picasso while on.
@@ -90,7 +89,7 @@ fun TimelapseBar(
                         Text(
                             stringResource(R.string.timelapse_frames, count),
                             style = MaterialTheme.typography.labelMedium,
-                            color = PicassoPaper,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
