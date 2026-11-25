@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -85,12 +86,15 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.Project
+import app.picasso.tracer.domain.model.TraceFilter
+import app.picasso.tracer.ui.theme.PicassoBlack
 import app.picasso.tracer.ui.theme.PicassoInk
 import app.picasso.tracer.ui.theme.PicassoPaper
 import coil.compose.AsyncImage
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
+import kotlin.math.roundToInt
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -109,12 +113,14 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.runtime.State
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
@@ -499,7 +505,10 @@ private fun ResumeCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                 )
+                Spacer(Modifier.height(8.dp))
+                OpacityMeter(opacity = project.opacity, onContainer = MaterialTheme.colorScheme.onPrimaryContainer)
             }
+            Spacer(Modifier.width(12.dp))
             PlayRing()
         }
     }
@@ -684,20 +693,27 @@ private fun ProjectCard(
         onClick = onOpen,
         interactionSource = press,
         modifier = modifier.pressScale(press),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
     ) {
         Column {
-            AsyncImage(
-                model = File(project.imagePath),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(4f / 3f),
-            )
+            Box {
+                AsyncImage(
+                    model = File(project.imagePath),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(4f / 3f),
+                )
+                FilterBadge(
+                    project.filter,
+                    Modifier.align(Alignment.TopStart).padding(8.dp),
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -734,7 +750,72 @@ private fun ProjectCard(
                     }
                 }
             }
+            OpacityMeter(
+                opacity = project.opacity,
+                onContainer = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+            )
         }
+    }
+}
+
+private fun TraceFilter.labelRes(): Int = when (this) {
+    TraceFilter.ORIGINAL -> R.string.filter_original
+    TraceFilter.GRAYSCALE -> R.string.filter_grayscale
+    TraceFilter.HIGH_CONTRAST -> R.string.filter_contrast
+    TraceFilter.EDGES -> R.string.filter_edges
+    TraceFilter.POSTERIZE -> R.string.filter_posterize
+}
+
+/** Small frosted label over the card image naming the filter the project was saved with. */
+@Composable
+private fun FilterBadge(filter: TraceFilter, modifier: Modifier = Modifier) {
+    Text(
+        stringResource(filter.labelRes()).uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        color = PicassoPaper,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+            .clip(CircleShape)
+            .background(PicassoBlack.copy(alpha = 0.55f))
+            .padding(horizontal = 9.dp, vertical = 4.dp),
+    )
+}
+
+/**
+ * Thin Ochre bar plus percentage for a project's overlay opacity. The bar fills in from empty when the
+ * card appears, and follows the system animation setting through the animation spec.
+ */
+@Composable
+private fun OpacityMeter(opacity: Float, onContainer: Color, modifier: Modifier = Modifier) {
+    val target = opacity.coerceIn(0f, 1f)
+    val fill = remember { Animatable(0f) }
+    LaunchedEffect(target) { fill.animateTo(target, tween(650, easing = FastOutSlowInEasing)) }
+    val ochre = MaterialTheme.colorScheme.primary
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Canvas(Modifier.weight(1f).height(4.dp)) {
+            val radius = CornerRadius(size.height / 2)
+            drawRoundRect(ochre.copy(alpha = 0.22f), cornerRadius = radius)
+            val width = size.width * fill.value
+            if (width > 0f) {
+                drawRoundRect(
+                    brush = Brush.horizontalGradient(
+                        listOf(ochre, ochre.copy(alpha = 0.7f).compositeOver(Color.White)),
+                        startX = 0f,
+                        endX = size.width,
+                    ),
+                    size = Size(width, size.height),
+                    cornerRadius = radius,
+                )
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            stringResource(R.string.opacity_percent, (target * 100).roundToInt()),
+            style = MaterialTheme.typography.labelSmall,
+            color = onContainer.copy(alpha = 0.8f),
+        )
     }
 }
 
