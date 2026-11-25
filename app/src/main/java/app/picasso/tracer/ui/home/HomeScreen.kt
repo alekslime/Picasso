@@ -380,41 +380,32 @@ fun HomeScreen(
     }
 }
 
-/**
- * Big in-page header from the new design. The brush stroke has its own row under the text, so it can never
- * overlap the title, tagline or settings button, whatever the screen width or font size.
- */
+/** Big in-page header from the new design: large title, tagline and a round settings button. */
 @Composable
 private fun HomeHeader(onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
-                Text(
-                    stringResource(R.string.home_title),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Medium,
-                )
-                Text(
-                    stringResource(R.string.tagline),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            FilledTonalIconButton(
-                onClick = onOpenSettings,
-                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                ),
-                modifier = Modifier.size(44.dp),
-            ) {
-                Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
-            }
+    Box(modifier = modifier.fillMaxWidth().height(128.dp)) {
+        BrushStroke(Modifier.align(Alignment.BottomEnd).size(width = 180.dp, height = 84.dp))
+        Column(modifier = Modifier.align(Alignment.CenterStart)) {
+            Text(
+                stringResource(R.string.home_title),
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                stringResource(R.string.tagline),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        BrushStroke(Modifier.fillMaxWidth().height(64.dp))
+        FilledTonalIconButton(
+            onClick = onOpenSettings,
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+            ),
+            modifier = Modifier.align(Alignment.TopEnd).size(44.dp),
+        ) {
+            Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
+        }
     }
 }
 
