@@ -368,7 +368,8 @@ fun HomeScreen(
 /** Big in-page header from the new design: large title, tagline and a round settings button. */
 @Composable
 private fun HomeHeader(onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxWidth().height(120.dp)) {
+    Box(modifier = modifier.fillMaxWidth().height(128.dp)) {
+        BrushStroke(Modifier.align(Alignment.BottomEnd).size(width = 180.dp, height = 84.dp))
         Column(modifier = Modifier.align(Alignment.CenterStart)) {
             Text(
                 stringResource(R.string.home_title),
