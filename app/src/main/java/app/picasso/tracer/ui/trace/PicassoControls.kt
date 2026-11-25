@@ -112,7 +112,7 @@ fun PicassoSlider(
     )
     val label: ((Float) -> String)? = bubbleLabel
         ?: if (valueRange.start == 0f && valueRange.endInclusive == 1f) {
-            { v -> "${(v * 100).roundToInt()}%" }
+            { v: Float -> "${(v * 100).roundToInt()}%" }
         } else {
             null
         }

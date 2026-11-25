@@ -86,6 +86,7 @@ private fun LightSlider(
             value = value,
             onValueChange = onValue,
             valueRange = range,
+            bubbleLabel = { valueLabel },
             modifier = Modifier.weight(1f),
         )
         Text(

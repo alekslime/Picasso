@@ -43,6 +43,7 @@ fun StrobeBar(
                 value = hz,
                 onValueChange = onHz,
                 valueRange = 0.5f..4f,
+                bubbleLabel = { "%.1f Hz".format(it) },
                 modifier = Modifier.weight(1f),
             )
         }
