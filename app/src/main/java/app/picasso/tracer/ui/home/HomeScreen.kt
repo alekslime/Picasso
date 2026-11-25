@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Check
@@ -107,6 +106,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.runtime.State
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.material.icons.filled.PlayArrow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -480,11 +487,48 @@ private fun ResumeCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                 )
             }
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            PlayRing()
+        }
+    }
+}
+
+/** Play button for the Continue card: a bright arc sweeps around a faint track while the card sits idle. */
+@Composable
+private fun PlayRing(modifier: Modifier = Modifier) {
+    val ring = MaterialTheme.colorScheme.primary
+    val onCard = MaterialTheme.colorScheme.onPrimaryContainer
+    val animate = rememberAnimationsEnabled()
+    val spin: State<Float> = if (animate) {
+        rememberInfiniteTransition(label = "playRing").animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(tween(2600, easing = LinearEasing), RepeatMode.Restart),
+            label = "playRingSpin",
+        )
+    } else {
+        remember { mutableStateOf(40f) }
+    }
+    Box(modifier = modifier.size(48.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val width = 3.dp.toPx()
+            val topLeft = Offset(width / 2, width / 2)
+            val arcSize = Size(size.width - width, size.height - width)
+            drawArc(ring.copy(alpha = 0.25f), 0f, 360f, false, topLeft, arcSize, style = Stroke(width))
+            drawArc(
+                color = ring,
+                startAngle = spin.value - 90f,
+                sweepAngle = 110f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width, cap = StrokeCap.Round),
             )
+        }
+        Box(
+            modifier = Modifier.size(34.dp).clip(CircleShape).background(onCard.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = onCard)
         }
     }
 }
