@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
@@ -83,6 +84,8 @@ private val BUBBLE_GAP = 8.dp
  * such as Reset stay silent. While touched, a small value bubble floats above the thumb: percent for a
  * plain 0..1 slider, [bubbleLabel] when given, and no bubble when neither applies.
  */
+// The Slider overload with a custom thumb is still experimental in this Material3 version.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PicassoSlider(
     value: Float,
