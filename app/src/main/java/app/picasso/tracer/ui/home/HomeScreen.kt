@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -47,10 +46,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -58,8 +59,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -76,6 +75,7 @@ import androidx.compose.ui.platform.LocalContext
 import android.app.Activity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -159,28 +159,6 @@ fun HomeScreen(
     val resume = if (browsing) projects.firstOrNull() else null
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(stringResource(R.string.home_title))
-                        Text(
-                            stringResource(R.string.tagline),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
-        },
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             if (showAds) {
@@ -205,6 +183,9 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                HomeHeader(onOpenSettings = onOpenSettings)
+            }
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Box(Modifier.fillMaxWidth().entrance(0)) {
                     NewTracingRow(
@@ -381,6 +362,34 @@ fun HomeScreen(
                 viewModel.renameProject(project, name)
             },
         )
+    }
+}
+
+/** Big in-page header from the new design: large title, tagline and a round settings button. */
+@Composable
+private fun HomeHeader(onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxWidth().height(120.dp)) {
+        Column(modifier = Modifier.align(Alignment.CenterStart)) {
+            Text(
+                stringResource(R.string.home_title),
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                stringResource(R.string.tagline),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        FilledTonalIconButton(
+            onClick = onOpenSettings,
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+            ),
+            modifier = Modifier.align(Alignment.TopEnd).size(44.dp),
+        ) {
+            Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
+        }
     }
 }
 
