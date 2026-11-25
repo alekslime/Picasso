@@ -5,8 +5,8 @@
 <h3 align="center">Trace anything, freehand.</h3>
 
 <p align="center">
-  A live camera under a translucent reference image,<br>
-  so you can draw it onto paper.
+  Point your phone at a sheet of paper. Picasso lays a translucent reference<br>
+  image over the live camera, so you can draw it by hand, line for line.
 </p>
 
 <p align="center">
@@ -33,12 +33,6 @@
 <p align="center">
   <img src="assets/readme/animation.gif" alt="Picasso: pick a reference, line it up, draw it, and fade out the training wheels" width="640">
 </p>
-
-<!-- After running ./scripts/demo.sh (writes assets/demo.gif), uncomment this:
-<p align="center">
-  <img src="assets/demo.gif" alt="Picasso in action: dragging the reference over the camera, locking it, fading it, then stepping through training wheels" width="300">
-</p>
--->
 
 ## Screenshots
 
@@ -71,7 +65,7 @@
 
 - Full-screen camera with a slim dock: lock, flip, torch, reset and opacity
 - A Tools sheet for everything else, in four short tabs
-- Landscape layout with the dock beside the camera
+- Works in landscape, with the dock beside the camera
 
 <h3><img src="assets/readme/icon-look.svg" height="24" align="absmiddle" alt=""> Look</h3>
 
@@ -103,7 +97,7 @@
 <h3><img src="assets/readme/icon-more.svg" height="24" align="absmiddle" alt=""> More</h3>
 
 - **AR anchor (beta):** keeps the overlay fixed on the paper as the phone moves
-- **Library:** samples, favorites, search, sort, rename, delete
+- **Library:** samples, favorites, search, sort, rename, share, and delete with a 6-second **Undo**
 - A home-screen widget to continue your last tracing
 
     </td>
@@ -152,8 +146,15 @@ reference only; see [LICENSE](LICENSE).
 
 ## Get Picasso
 
-Grab the APK from [**Releases**](https://github.com/alekslime/Picasso/releases),
-or from CI artifacts on any green build. Requires **Android 8.0 (API 26)** or newer.
+Grab an APK from [**Releases**](https://github.com/alekslime/Picasso/releases).
+Requires **Android 8.0 (API 26)** or newer.
+
+| Edition | Package | What you get |
+|---|---|---|
+| **Picasso** (base) | `app.picasso.tracer` | The normal app, with the ad banner and a one-time Pro unlock |
+| **Picasso Pro** | `app.picasso.tracer.pro` | Pro already unlocked: AR anchor, no ads. Sideload and testing build, not for Play |
+
+Both install side by side and keep separate projects and settings.
 
 <br>
 
@@ -216,7 +217,7 @@ dark, camera-first layout. See the [Figma file](https://www.figma.com/design/lje
 </details>
 
 <details>
-<summary><b>Updating the screenshots and demo GIF</b></summary>
+<summary><b>Updating the screenshots</b></summary>
 
 <br>
 
@@ -226,17 +227,10 @@ With an emulator running or a phone connected (USB debugging on):
 ./scripts/screenshots.sh        # or: python3 scripts/screenshots.py
 ```
 
-It installs the debug build if needed, starts the app from a clean state, taps
+It installs the base debug build if needed, starts the app from a clean state, taps
 through every screen on its own and saves the six PNGs to `assets/screenshots/`.
 Pass `--serial <id>` if more than one device is attached. It clears Picasso's app
 data first, so don't run it on a device with tracings you want to keep.
-
-The demo GIF works the same way and records itself while it drags, locks, fades
-and flips the overlay and steps through the training-wheels levels:
-
-```sh
-./scripts/demo.sh               # writes assets/demo.gif (needs ffmpeg)
-```
 
 </details>
 
