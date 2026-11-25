@@ -3,13 +3,19 @@ package app.picasso.tracer.ui.trace
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -33,6 +39,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import app.picasso.tracer.ui.theme.PicassoInk
+import app.picasso.tracer.ui.theme.PicassoLine
 import app.picasso.tracer.ui.theme.PicassoOchre
 import app.picasso.tracer.ui.theme.PicassoPaper
 import app.picasso.tracer.ui.theme.PicassoSurface
@@ -54,6 +61,8 @@ fun PicassoFilterChip(
     // Material3 chips swap colours instantly; animate them so a selection reads as a change of state.
     val container by animateColorAsState(if (selected) PicassoOchre else PicassoSurface, tween(160), label = "chipBg")
     val content by animateColorAsState(if (selected) PicassoInk else PicassoPaper, tween(160), label = "chipFg")
+    // Hairline outline on idle chips, matching the pills on Home; it melts into the Ochre fill when selected.
+    val outline by animateColorAsState(if (selected) PicassoOchre else PicassoLine, tween(160), label = "chipOutline")
     FilterChip(
         selected = selected,
         onClick = onClick,
@@ -67,7 +76,7 @@ fun PicassoFilterChip(
             selectedLabelColor = content,
             selectedLeadingIconColor = content,
         ),
-        border = null,
+        border = BorderStroke(1.dp, outline),
         shape = RoundedCornerShape(20.dp),
         modifier = modifier.height(36.dp),
     )
@@ -178,13 +187,21 @@ fun PicassoSlider(
     )
 }
 
-/** Small Ochre mono section label used inside the trace panel (e.g. FILTERS). */
+/** Small Ochre mono section label used inside the trace panel (e.g. FILTERS), led by a short Ochre bar. */
 @Composable
 fun PicassoSectionLabel(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = PicassoOchre,
-        modifier = modifier,
-    )
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .size(width = 3.dp, height = 12.dp)
+                .clip(CircleShape)
+                .background(PicassoOchre),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = PicassoOchre,
+        )
+    }
 }

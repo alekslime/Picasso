@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
@@ -76,6 +77,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.ui.theme.PicassoInk
+import app.picasso.tracer.ui.theme.PicassoLine
 import app.picasso.tracer.ui.theme.PicassoOchre
 import app.picasso.tracer.ui.theme.PicassoPaper
 import app.picasso.tracer.ui.theme.PicassoPaperMuted
@@ -109,7 +111,8 @@ fun TraceDock(
     Surface(
         color = PicassoInk,
         contentColor = PicassoPaper,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(1.dp, PicassoLine),
         modifier = modifier,
     ) {
         Column(
@@ -329,7 +332,7 @@ private fun ToolTab(
         verticalArrangement = Arrangement.spacedBy(2.dp),
         modifier = modifier
             .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(container)
             .clickable(interactionSource = press, indication = LocalIndication.current, onClick = onClick)
             .padding(vertical = 10.dp),

@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.TraceFilter
+import app.picasso.tracer.ui.theme.PicassoOchre
 import app.picasso.tracer.ui.theme.PicassoPaper
 import app.picasso.tracer.ui.theme.PicassoPaperMuted
 
@@ -146,7 +147,7 @@ private fun Stepper(
         Text(
             "$value",
             style = MaterialTheme.typography.labelMedium,
-            color = PicassoPaper,
+            color = PicassoOchre,
             modifier = Modifier.widthIn(min = 20.dp),
         )
         IconButton(onClick = { onValue(value + 1) }) {
