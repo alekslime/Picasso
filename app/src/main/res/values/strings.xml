@@ -23,8 +23,8 @@
     <string name="recent_projects">Recent projects</string>
     <string name="no_projects">No projects yet. Pick an image to start tracing.</string>
     <string name="project_untitled">Untitled tracing</string>
-    <string name="delete_project">Delete project</string>
-    <string name="delete_project_confirm">Delete this project? This cannot be undone.</string>
+    <string name="project_deleted">Deleted “%1$s”</string>
+    <string name="undo">Undo</string>
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
     <string name="settings">Settings</string>

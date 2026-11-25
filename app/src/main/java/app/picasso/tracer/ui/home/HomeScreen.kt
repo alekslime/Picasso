@@ -57,15 +57,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -94,6 +98,10 @@ import app.picasso.tracer.ui.theme.PicassoBlack
 import app.picasso.tracer.ui.theme.PicassoPaper
 import coil.compose.AsyncImage
 import java.io.File
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 import androidx.compose.animation.animateColorAsState
@@ -147,8 +155,41 @@ fun HomeScreen(
     val activity = context as? Activity
     LaunchedEffect(Unit) { activity?.let { viewModel.ads.ensureConsent(it) } }
     val untitled = stringResource(R.string.project_untitled)
+    val undoLabel = stringResource(R.string.undo)
+    val scope = rememberCoroutineScope()
 
-    var deleting by remember { mutableStateOf<Project?>(null) }
+    // Deleting is immediate and undoable: the card disappears, a snackbar offers Undo for a few seconds.
+    val deleteProject: (Project) -> Unit = { project ->
+        viewModel.deleteProject(project)
+        scope.launch {
+            snackbar.currentSnackbarData?.dismiss()
+            val closer = launch {
+                delay(HomeViewModel.UNDO_WINDOW_MS)
+                snackbar.currentSnackbarData?.dismiss()
+            }
+            val result = snackbar.showSnackbar(
+                message = context.getString(R.string.project_deleted, project.name.ifBlank { untitled }),
+                actionLabel = undoLabel,
+                duration = SnackbarDuration.Indefinite,
+            )
+            closer.cancel()
+            if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete(project.id)
+        }
+    }
+
+    // Leaving the screen finishes a pending delete (no stale Undo), so nothing is lost if the app is closed.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                snackbar.currentSnackbarData?.dismiss()
+                viewModel.commitPendingDelete()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     var renaming by remember { mutableStateOf<Project?>(null) }
 
     val pickImage = rememberLauncherForActivityResult(
@@ -348,7 +389,7 @@ fun HomeScreen(
                         viewModel.toggleFavorite(project)
                     },
                     onRename = { renaming = project },
-                    onDelete = { deleting = project },
+                    onDelete = { deleteProject(project) },
                 )
             }
             if (library.isEmpty()) {
@@ -363,23 +404,6 @@ fun HomeScreen(
         }
     }
 
-    deleting?.let { project ->
-        AlertDialog(
-            onDismissRequest = { deleting = null },
-            title = { Text(stringResource(R.string.delete_project)) },
-            text = { Text(stringResource(R.string.delete_project_confirm)) },
-            confirmButton = {
-                TextButton(onClick = { deleting = null; viewModel.deleteProject(project) }) {
-                    Text(stringResource(R.string.delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleting = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
     renaming?.let { project ->
         RenameDialog(
             project = project,

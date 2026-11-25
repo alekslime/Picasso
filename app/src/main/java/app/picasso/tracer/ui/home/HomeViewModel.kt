@@ -13,12 +13,15 @@ import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.repository.ProjectRepository
 import app.picasso.tracer.filters.FilterProcessor
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
@@ -51,8 +54,14 @@ class HomeViewModel @Inject constructor(
     ) { s, ready -> !s.proUnlocked && ready }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    val projects: StateFlow<List<Project>> = repository.observeProjects()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /** Ids hidden from the library while a delete waits out its undo window or finishes. */
+    private val hidden = MutableStateFlow<Set<Long>>(emptySet())
+    private var pendingDelete: Project? = null
+    private var pendingJob: Job? = null
+
+    val projects: StateFlow<List<Project>> = combine(repository.observeProjects(), hidden) { all, gone ->
+        if (gone.isEmpty()) all else all.filterNot { it.id in gone }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _creating = MutableStateFlow(false)
     val creating: StateFlow<Boolean> = _creating.asStateFlow()
@@ -159,15 +168,51 @@ class HomeViewModel @Inject constructor(
         _favoritesOnly.value = favoritesOnly
     }
 
+    /**
+     * Hides [project] right away and deletes it for real after the undo window. Deleting another project
+     * (or leaving the screen) finishes the earlier one immediately, so at most one delete is ever pending.
+     */
     fun deleteProject(project: Project) {
+        commitPendingDelete()
+        pendingDelete = project
+        hidden.update { it + project.id }
+        pendingJob = viewModelScope.launch {
+            // A little longer than the snackbar so Undo can never be offered after the delete has run.
+            delay(UNDO_WINDOW_MS + 1_000)
+            commitPendingDelete()
+        }
+    }
+
+    /** Brings back the project hidden by the last [deleteProject], if it hasn't been deleted yet. */
+    fun undoDelete(id: Long) {
+        val project = pendingDelete ?: return
+        if (project.id != id) return
+        pendingJob?.cancel()
+        pendingJob = null
+        pendingDelete = null
+        hidden.update { it - id }
+    }
+
+    /** Deletes the pending project now (the undo window ended, or the screen is being left). */
+    fun commitPendingDelete() {
+        val project = pendingDelete ?: return
+        pendingJob?.cancel()
+        pendingJob = null
+        pendingDelete = null
         viewModelScope.launch {
             repository.deleteProject(project.id)
             imageStore.delete(project.imagePath)
             filters.evict(project.imagePath)
+            hidden.update { it - project.id }
         }
     }
 
     fun clearError() {
         _errorRes.value = null
+    }
+
+    companion object {
+        /** How long the Undo snackbar stays up after a delete. */
+        const val UNDO_WINDOW_MS = 6_000L
     }
 }
