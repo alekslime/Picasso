@@ -2,6 +2,9 @@ package app.picasso.tracer.ui.trace
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
@@ -11,13 +14,18 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import app.picasso.tracer.ui.theme.PicassoInk
 import app.picasso.tracer.ui.theme.PicassoOchre
 import app.picasso.tracer.ui.theme.PicassoPaper
 import app.picasso.tracer.ui.theme.PicassoSurface
+import kotlin.math.roundToInt
 
 /**
  * Figma chip: unselected = Surface/Paper, selected = Ochre/Ink.
@@ -54,7 +62,14 @@ fun PicassoFilterChip(
     )
 }
 
-/** Figma slider: Ochre active track, Paper thumb, Surface inactive track. */
+/** Slider detents: one haptic tick per 5% of the range while dragging. */
+private const val SLIDER_TICKS = 20
+
+/**
+ * Figma slider: Ochre active track, Paper thumb, Surface inactive track. Dragging (or tapping the track)
+ * gives a light haptic tick every 5% of the range and a firmer one at either end; programmatic changes
+ * such as Reset stay silent.
+ */
 @Composable
 fun PicassoSlider(
     value: Float,
@@ -62,10 +77,35 @@ fun PicassoSlider(
     modifier: Modifier = Modifier,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
 ) {
+    val haptics = LocalHapticFeedback.current
+    val interaction = remember { MutableInteractionSource() }
+    val dragged by interaction.collectIsDraggedAsState()
+    val pressed by interaction.collectIsPressedAsState()
+    val active = dragged || pressed
+
+    fun stepOf(v: Float): Int {
+        val span = valueRange.endInclusive - valueRange.start
+        return if (span <= 0f) 0 else (((v - valueRange.start) / span) * SLIDER_TICKS).roundToInt()
+    }
+    val lastStep = remember { IntArray(1) { stepOf(value) } }
+    // Start each touch from wherever the thumb currently is, so the first move doesn't tick spuriously.
+    LaunchedEffect(active) { if (active) lastStep[0] = stepOf(value) }
+
     Slider(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { v ->
+            val step = stepOf(v)
+            if (step != lastStep[0]) {
+                lastStep[0] = step
+                haptics.performHapticFeedback(
+                    if (step == 0 || step == SLIDER_TICKS) HapticFeedbackType.LongPress
+                    else HapticFeedbackType.TextHandleMove,
+                )
+            }
+            onValueChange(v)
+        },
         valueRange = valueRange,
+        interactionSource = interaction,
         colors = SliderDefaults.colors(
             thumbColor = PicassoPaper,
             activeTrackColor = PicassoOchre,
