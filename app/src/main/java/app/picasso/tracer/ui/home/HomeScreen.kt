@@ -5,6 +5,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,13 +48,13 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -302,7 +304,13 @@ fun HomeScreen(
                                 }
                             },
                             singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = CircleShape,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            ),
                             modifier = Modifier.weight(1f),
                         )
                         SortMenu(sort = sort, onSort = viewModel::setSort)
@@ -310,15 +318,15 @@ fun HomeScreen(
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.entrance(6)) {
-                        FilterChip(
+                        FilterPill(
+                            label = stringResource(R.string.filter_all),
                             selected = !favoritesOnly,
                             onClick = { viewModel.setFavoritesOnly(false) },
-                            label = { Text(stringResource(R.string.filter_all)) },
                         )
-                        FilterChip(
+                        FilterPill(
+                            label = stringResource(R.string.filter_favorites),
                             selected = favoritesOnly,
                             onClick = { viewModel.setFavoritesOnly(true) },
-                            label = { Text(stringResource(R.string.filter_favorites)) },
                         )
                     }
                 }
@@ -569,6 +577,32 @@ private fun SampleCard(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+}
+
+/** Rounded pill filter: Ochre fill when selected, hairline outline otherwise. Colours cross-fade. */
+@Composable
+private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    val container by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        tween(200),
+        label = "pillContainer",
+    )
+    val content by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        tween(200),
+        label = "pillContent",
+    )
+    val outline = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(container)
+            .border(1.dp, outline, CircleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+    ) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = content)
     }
 }
 
