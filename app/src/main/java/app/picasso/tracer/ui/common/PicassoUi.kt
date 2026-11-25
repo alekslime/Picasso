@@ -24,22 +24,47 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** Shared building blocks for the Home restyle, reused by Settings and the Trace screen. */
 
-/** Section title with a short Ochre bar on its left. */
+/**
+ * Section title with a short Ochre bar on its left. [prominent] uses the larger Home size;
+ * [count] shows a small pill at the right edge.
+ */
 @Composable
-fun PicassoSectionHeader(title: String, modifier: Modifier = Modifier) {
+fun PicassoSectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    prominent: Boolean = false,
+    count: Int? = null,
+) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier
-                .size(width = 4.dp, height = 18.dp)
+                .size(width = 4.dp, height = if (prominent) 20.dp else 18.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primary),
         )
         Spacer(Modifier.width(10.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(
+            title,
+            style = if (prominent) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+        )
+        if (count != null) {
+            Text(
+                "$count",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+            )
+        }
     }
 }
 
@@ -61,6 +86,8 @@ fun PicassoPill(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    horizontalPadding: Dp = 14.dp,
+    verticalPadding: Dp = 9.dp,
 ) {
     val container by animateColorAsState(
         if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
@@ -80,7 +107,7 @@ fun PicassoPill(
             .background(container)
             .border(1.dp, outline, CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 9.dp),
+            .padding(horizontal = horizontalPadding, vertical = verticalPadding),
     ) {
         Text(
             label,

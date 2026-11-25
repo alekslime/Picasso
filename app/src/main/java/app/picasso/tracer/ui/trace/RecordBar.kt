@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
@@ -43,10 +42,10 @@ fun RecordBar(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Figma: 52dp Ochre record action, radius 12, Ink label in both states.
+    // 52dp Ochre record action, pill-shaped to match the rest of the app, Ink label in both states.
     Button(
         onClick = onToggle,
-        shape = RoundedCornerShape(12.dp),
+        shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = PicassoOchre,
             contentColor = PicassoInk,

@@ -6,8 +6,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,6 +86,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.TraceFilter
+import app.picasso.tracer.ui.common.PicassoPill
+import app.picasso.tracer.ui.common.PicassoSectionHeader
 import app.picasso.tracer.ui.common.picassoCard
 import app.picasso.tracer.ui.theme.PicassoBlack
 import app.picasso.tracer.ui.theme.PicassoPaper
@@ -247,8 +247,9 @@ fun HomeScreen(
             }
             if (samples.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    SectionHeader(
+                    PicassoSectionHeader(
                         title = stringResource(R.string.try_sample),
+                        prominent = true,
                         modifier = Modifier.padding(top = 12.dp).entrance(2),
                     )
                 }
@@ -273,8 +274,9 @@ fun HomeScreen(
                 }
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
-                SectionHeader(
+                PicassoSectionHeader(
                     title = stringResource(R.string.library),
+                    prominent = true,
                     count = library.size.takeIf { library.isNotEmpty() },
                     modifier = Modifier.padding(top = 12.dp).entrance(4),
                 )
@@ -313,21 +315,25 @@ fun HomeScreen(
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.entrance(6)) {
-                        FilterPill(
+                        PicassoPill(
                             label = stringResource(R.string.filter_all),
                             selected = !favoritesOnly,
                             onClick = {
                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 viewModel.setFavoritesOnly(false)
                             },
+                            horizontalPadding = 18.dp,
+                            verticalPadding = 8.dp,
                         )
-                        FilterPill(
+                        PicassoPill(
                             label = stringResource(R.string.filter_favorites),
                             selected = favoritesOnly,
                             onClick = {
                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 viewModel.setFavoritesOnly(true)
                             },
+                            horizontalPadding = 18.dp,
+                            verticalPadding = 8.dp,
                         )
                     }
                 }
@@ -612,66 +618,6 @@ private fun SampleCard(
                 )
             }
         }
-    }
-}
-
-/** Section title with a short Ochre accent bar, and an optional count in a small pill. */
-@Composable
-private fun SectionHeader(title: String, modifier: Modifier = Modifier, count: Int? = null) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            Modifier
-                .size(width = 4.dp, height = 20.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary),
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f),
-        )
-        if (count != null) {
-            Text(
-                "$count",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
-            )
-        }
-    }
-}
-
-/** Rounded pill filter: Ochre fill when selected, hairline outline otherwise. Colours cross-fade. */
-@Composable
-private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
-    val container by animateColorAsState(
-        if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
-        tween(200),
-        label = "pillContainer",
-    )
-    val content by animateColorAsState(
-        if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-        tween(200),
-        label = "pillContent",
-    )
-    val outline = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-    Box(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(container)
-            .border(1.dp, outline, CircleShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 8.dp),
-    ) {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = content)
     }
 }
 
