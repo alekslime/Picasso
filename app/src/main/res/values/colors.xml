@@ -2,4 +2,6 @@
 <resources>
     <color name="picasso_seed">#18794E</color>
     <color name="ic_launcher_background">#242424</color>
+    <!-- Same as Home's light background (PicassoPaper); values-night overrides it with the dark one. -->
+    <color name="splash_background">#F1EBDD</color>
 </resources>

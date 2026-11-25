@@ -6,9 +6,9 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <!-- Cold-start splash: dark ground, the launcher brush stroke drawing itself on Android 12+. -->
+    <!-- Cold-start splash: ground matches Home's background (Paper / Black), the launcher brush stroke drawing itself on Android 12+. -->
     <style name="Theme.Picasso.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_animated</item>
         <item name="windowSplashScreenAnimationDuration">900</item>
         <item name="postSplashScreenTheme">@style/Theme.Picasso</item>
