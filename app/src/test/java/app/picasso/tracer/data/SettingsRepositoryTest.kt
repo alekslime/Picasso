@@ -1,6 +1,7 @@
 package app.picasso.tracer.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import app.picasso.tracer.BuildConfig
 import app.picasso.tracer.domain.model.PicassoSettings
 import app.picasso.tracer.domain.model.ThemeMode
 import kotlinx.coroutines.cancel
@@ -53,7 +54,8 @@ class SettingsRepositoryTest {
     fun `account and pro flags persist`() = runTest {
         val repo = repository()
         assertEquals(null, repo.settings.first().accountEmail)
-        assertEquals(false, repo.settings.first().proUnlocked)
+        // The pro edition ships unlocked; the base edition starts locked.
+        assertEquals(BuildConfig.PRO_BUILD, repo.settings.first().proUnlocked)
         repo.setAccount("a@b.c", "Ada")
         repo.setProUnlocked(true)
         val s = repo.settings.first()

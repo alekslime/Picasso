@@ -5,7 +5,7 @@ Launches Picasso on a connected device/emulator, taps through every screen by
 reading the on-screen UI (uiautomator) and saves PNGs to assets/screenshots/.
 No manual navigation: just run it.
 
-    ./gradlew installDebug      # optional, the script installs if missing
+    ./gradlew installBaseDebug      # optional, the script installs if missing
     python3 scripts/screenshots.py [--serial emulator-5554] [--install]
 
 Notes
@@ -167,10 +167,10 @@ def preflight(install: bool) -> None:
 
     installed = PKG in shell("pm", "list", "packages", PKG)
     if install or not installed:
-        print("Installing debug build (./gradlew installDebug)...")
+        print("Installing debug build (./gradlew installBaseDebug)...")
         gradlew = "gradlew.bat" if sys.platform.startswith("win") else "./gradlew"
         env = {**os.environ, "ANDROID_SERIAL": SERIAL} if SERIAL else None
-        res = subprocess.run([gradlew, "installDebug"], cwd=ROOT, env=env)
+        res = subprocess.run([gradlew, "installBaseDebug"], cwd=ROOT, env=env)
         if res.returncode != 0:
             sys.exit("Gradle install failed.")
 
@@ -218,7 +218,7 @@ def main() -> None:
     global SERIAL
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--serial", help="adb device serial (needed if several are attached)")
-    ap.add_argument("--install", action="store_true", help="always run ./gradlew installDebug first")
+    ap.add_argument("--install", action="store_true", help="always run ./gradlew installBaseDebug first")
     args = ap.parse_args()
     SERIAL = args.serial
 

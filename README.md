@@ -163,9 +163,16 @@ or from CI artifacts on any green build. Requires **Android 8.0 (API 26)** or ne
 
 ```sh
 ./gradlew testDebugUnitTest   # unit tests
-./gradlew assembleDebug       # app/build/outputs/apk/debug/app-debug.apk
-./gradlew installDebug        # install on a connected device
+./gradlew assembleBaseDebug    # app/build/outputs/apk/base/debug/app-base-debug.apk
+./gradlew assembleProDebug     # app/build/outputs/apk/pro/debug/app-pro-debug.apk
+./gradlew installBaseDebug     # install the base app on a connected device
+./gradlew installProDebug      # install Picasso Pro next to it
+./scripts/build-apks.sh        # both editions, copied to build/apks/
 ```
+
+The **pro** edition is a test/sideload build: package `app.picasso.tracer.pro`, Pro unlocked, no ads.
+It installs next to the base app. Google sign-in only works in it once an Android OAuth client for the
+`.pro` package ID and your signing key's SHA-1 exists in the same Google Cloud project.
 
 Needs **JDK 17** and **Android SDK 36**. The app builds and runs without any API
 keys: ads, billing and sign-in degrade gracefully until you configure them.

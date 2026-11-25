@@ -49,6 +49,22 @@ android {
         }
     }
 
+    // Two editions that install side by side. "pro" ships with Pro already unlocked (no ads, no purchase)
+    // under its own package ID; "base" is the normal app where Pro is an in-app purchase.
+    flavorDimensions += "edition"
+    productFlavors {
+        create("base") {
+            dimension = "edition"
+            buildConfigField("boolean", "PRO_BUILD", "false")
+        }
+        create("pro") {
+            dimension = "edition"
+            applicationIdSuffix = ".pro"
+            versionNameSuffix = "-pro"
+            buildConfigField("boolean", "PRO_BUILD", "true")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -62,6 +78,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

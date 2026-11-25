@@ -24,7 +24,9 @@ secrets exist (Settings → Secrets → Actions). Nothing secret is committed.
 3. Add the secrets: `PICASSO_KEYSTORE_BASE64` (`base64 -w0
    picasso-upload.jks`), `PICASSO_KEYSTORE_PASSWORD`, `PICASSO_KEY_ALIAS`
    (`picasso`), `PICASSO_KEY_PASSWORD`.
-4. Tag a release: the workflow uploads `app-release.aab` as an artifact —
+4. Tag a release: the workflow uploads the base edition's bundle (`./gradlew bundleBaseRelease`) as an artifact —
    download it and drop it on the Console's release track.
+
+The `pro` edition is for testing and sideloading only; don't upload it to Play.
 
 Local release builds without the env vars stay unsigned (normal).

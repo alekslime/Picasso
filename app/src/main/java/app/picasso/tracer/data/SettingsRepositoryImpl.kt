@@ -1,5 +1,6 @@
 package app.picasso.tracer.data
 
+import app.picasso.tracer.BuildConfig
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -36,7 +37,7 @@ class SettingsRepositoryImpl @Inject constructor(
                 tutorialCompleted = prefs[Keys.TUTORIAL_COMPLETED] ?: false,
                 accountEmail = prefs[Keys.ACCOUNT_EMAIL],
                 accountName = prefs[Keys.ACCOUNT_NAME],
-                proUnlocked = prefs[Keys.PRO_UNLOCKED] ?: false,
+                proUnlocked = BuildConfig.PRO_BUILD || (prefs[Keys.PRO_UNLOCKED] ?: false),
                 trainingLevel = HelpLevel.fromName(prefs[Keys.TRAINING_LEVEL]),
             )
         }
