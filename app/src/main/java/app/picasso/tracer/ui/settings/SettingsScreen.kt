@@ -1,7 +1,5 @@
 package app.picasso.tracer.ui.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,8 +21,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -34,6 +29,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,7 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import app.picasso.tracer.ui.home.AdBanner
 import androidx.compose.ui.res.stringResource
@@ -51,6 +48,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.ThemeMode
+import app.picasso.tracer.ui.common.PicassoPill
+import app.picasso.tracer.ui.common.PicassoSectionHeader
+import app.picasso.tracer.ui.common.picassoCard
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,12 +81,19 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
+                title = {
+                    Text(
+                        stringResource(R.string.settings),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
         },
     ) { padding ->
@@ -99,24 +106,30 @@ fun SettingsScreen(
         ) {
             SectionLabel(stringResource(R.string.appearance))
             Spacer(Modifier.height(12.dp))
-            ThemeRow(
-                label = stringResource(R.string.theme_system),
-                selected = settings.themeMode == ThemeMode.SYSTEM,
-                onSelect = { viewModel.setThemeMode(ThemeMode.SYSTEM) },
-            )
-            Spacer(Modifier.height(8.dp))
-            ThemeRow(
-                label = stringResource(R.string.theme_light),
-                selected = settings.themeMode == ThemeMode.LIGHT,
-                onSelect = { viewModel.setThemeMode(ThemeMode.LIGHT) },
-            )
-            Spacer(Modifier.height(8.dp))
-            ThemeRow(
-                label = stringResource(R.string.theme_dark),
-                selected = settings.themeMode == ThemeMode.DARK,
-                onSelect = { viewModel.setThemeMode(ThemeMode.DARK) },
-            )
-            Spacer(Modifier.height(24.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().picassoCard().padding(12.dp),
+            ) {
+                PicassoPill(
+                    label = stringResource(R.string.theme_system),
+                    selected = settings.themeMode == ThemeMode.SYSTEM,
+                    onClick = { viewModel.setThemeMode(ThemeMode.SYSTEM) },
+                    modifier = Modifier.weight(1f),
+                )
+                PicassoPill(
+                    label = stringResource(R.string.theme_light),
+                    selected = settings.themeMode == ThemeMode.LIGHT,
+                    onClick = { viewModel.setThemeMode(ThemeMode.LIGHT) },
+                    modifier = Modifier.weight(1f),
+                )
+                PicassoPill(
+                    label = stringResource(R.string.theme_dark),
+                    selected = settings.themeMode == ThemeMode.DARK,
+                    onClick = { viewModel.setThemeMode(ThemeMode.DARK) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Spacer(Modifier.height(28.dp))
             AccountSection(
                 email = settings.accountEmail,
                 name = settings.accountName,
@@ -124,56 +137,57 @@ fun SettingsScreen(
                 onSignOut = viewModel::signOut,
                 onDelete = { confirmDelete = true },
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(28.dp))
             ProSection(
                 proUnlocked = settings.proUnlocked,
                 price = proPrice,
                 onBuy = { activity?.let { viewModel.buyPro(it) } },
                 onRestore = viewModel::restorePro,
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(28.dp))
             SectionLabel(stringResource(R.string.new_project_defaults))
-            Spacer(Modifier.height(16.dp))
-            Text(
-                stringResource(R.string.default_opacity),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Slider(
-                    value = settings.defaultOpacity,
-                    onValueChange = viewModel::setDefaultOpacity,
-                    valueRange = 0f..1f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.onSurface,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
+            Spacer(Modifier.height(12.dp))
+            Column(modifier = Modifier.fillMaxWidth().picassoCard().padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Text(
-                    "${(settings.defaultOpacity * 100).roundToInt()}%",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.widthIn(min = 44.dp),
+                    stringResource(R.string.default_opacity),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Slider(
+                        value = settings.defaultOpacity,
+                        onValueChange = viewModel::setDefaultOpacity,
+                        valueRange = 0f..1f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.onSurface,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ),
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "${(settings.defaultOpacity * 100).roundToInt()}%",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.widthIn(min = 44.dp),
+                    )
+                }
+                GridStepper(
+                    label = stringResource(R.string.grid_rows),
+                    value = settings.defaultGridRows,
+                    onValue = { viewModel.setDefaultGrid(it, settings.defaultGridCols) },
+                )
+                GridStepper(
+                    label = stringResource(R.string.grid_columns),
+                    value = settings.defaultGridCols,
+                    onValue = { viewModel.setDefaultGrid(settings.defaultGridRows, it) },
                 )
             }
-            GridStepper(
-                label = stringResource(R.string.grid_rows),
-                value = settings.defaultGridRows,
-                onValue = { viewModel.setDefaultGrid(it, settings.defaultGridCols) },
-            )
-            GridStepper(
-                label = stringResource(R.string.grid_columns),
-                value = settings.defaultGridCols,
-                onValue = { viewModel.setDefaultGrid(settings.defaultGridRows, it) },
-            )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(28.dp))
             // About card from the Figma Settings frame.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .picassoCard()
                     .padding(16.dp),
             ) {
                 Text("Picasso 1.0.0", style = MaterialTheme.typography.titleSmall)
@@ -214,43 +228,9 @@ fun SettingsScreen(
     }
 }
 
-/** Figma section header: Ochre JetBrains Mono label. */
 @Composable
 private fun SectionLabel(text: String) {
-    Text(
-        text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary,
-    )
-}
-
-@Composable
-private fun ThemeRow(
-    label: String,
-    selected: Boolean,
-    onSelect: () -> Unit,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onSelect)
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f),
-        )
-        RadioButton(
-            selected = selected,
-            onClick = onSelect,
-            colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary),
-        )
-    }
+    PicassoSectionHeader(text)
 }
 
 @Composable
@@ -271,7 +251,7 @@ private fun GridStepper(
         IconButton(onClick = { onValue(value - 1) }) {
             Icon(Icons.Default.Remove, contentDescription = null)
         }
-        Text("$value", style = MaterialTheme.typography.labelMedium)
+        Text("$value", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         IconButton(onClick = { onValue(value + 1) }) {
             Icon(Icons.Default.Add, contentDescription = null)
         }
@@ -293,7 +273,7 @@ private fun AccountSection(
         if (email == null) {
             Button(
                 onClick = onSignIn,
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -301,22 +281,24 @@ private fun AccountSection(
                 Text(stringResource(R.string.sign_in_google))
             }
         } else {
-            Text(name ?: email, style = MaterialTheme.typography.titleSmall)
-            Text(
-                email,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(4.dp))
-            Row {
-                TextButton(onClick = onSignOut) {
-                    Text(stringResource(R.string.sign_out))
-                }
-                TextButton(onClick = onDelete) {
-                    Text(
-                        stringResource(R.string.delete_account),
-                        color = MaterialTheme.colorScheme.error,
-                    )
+            Column(modifier = Modifier.fillMaxWidth().picassoCard().padding(16.dp)) {
+                Text(name ?: email, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    email,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                Row {
+                    TextButton(onClick = onSignOut) {
+                        Text(stringResource(R.string.sign_out))
+                    }
+                    TextButton(onClick = onDelete) {
+                        Text(
+                            stringResource(R.string.delete_account),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
         }
@@ -333,34 +315,37 @@ private fun ProSection(
 ) {
     Column(modifier = modifier) {
         SectionLabel(stringResource(R.string.pro))
-        Spacer(Modifier.height(4.dp))
-        if (proUnlocked) {
-            Text(
-                stringResource(R.string.pro_unlocked),
-                style = MaterialTheme.typography.titleSmall,
-            )
-        } else {
-            Text(
-                stringResource(R.string.pro_tagline),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = onBuy,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-            ) {
+        Spacer(Modifier.height(12.dp))
+        Column(modifier = Modifier.fillMaxWidth().picassoCard().padding(16.dp)) {
+            if (proUnlocked) {
                 Text(
-                    if (price != null) "${stringResource(R.string.pro_buy)} — $price"
-                    else stringResource(R.string.pro_buy),
+                    stringResource(R.string.pro_unlocked),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
                 )
+            } else {
+                Text(
+                    stringResource(R.string.pro_tagline),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(14.dp))
+                Button(
+                    onClick = onBuy,
+                    shape = MaterialTheme.shapes.large,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                ) {
+                    Text(
+                        if (price != null) "${stringResource(R.string.pro_buy)} — $price"
+                        else stringResource(R.string.pro_buy),
+                    )
+                }
             }
-        }
-        TextButton(onClick = onRestore) {
-            Text(stringResource(R.string.pro_restore))
+            TextButton(onClick = onRestore) {
+                Text(stringResource(R.string.pro_restore))
+            }
         }
     }
 }
