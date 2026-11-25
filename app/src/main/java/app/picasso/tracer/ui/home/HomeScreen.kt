@@ -118,7 +118,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.Canvas
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.runtime.State
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -248,10 +247,9 @@ fun HomeScreen(
             }
             if (samples.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        stringResource(R.string.try_sample),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(top = 8.dp).entrance(2),
+                    SectionHeader(
+                        title = stringResource(R.string.try_sample),
+                        modifier = Modifier.padding(top = 12.dp).entrance(2),
                     )
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
@@ -274,26 +272,11 @@ fun HomeScreen(
                 }
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
-                        .entrance(4),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        stringResource(R.string.library),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    if (library.isNotEmpty()) {
-                        Text(
-                            "${library.size}",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                SectionHeader(
+                    title = stringResource(R.string.library),
+                    count = library.size.takeIf { library.isNotEmpty() },
+                    modifier = Modifier.padding(top = 12.dp).entrance(4),
+                )
             }
             if (projects.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
@@ -505,53 +488,59 @@ private fun ResumeCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                 )
-                Spacer(Modifier.height(8.dp))
-                OpacityMeter(opacity = project.opacity, onContainer = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(
+                    stringResource(R.string.opacity_percent, (project.opacity.coerceIn(0f, 1f) * 100).roundToInt()),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
             Spacer(Modifier.width(12.dp))
-            PlayRing()
+            PlayRing(opacity = project.opacity)
         }
     }
 }
 
-/** Play button for the Continue card: a bright arc sweeps around a faint track while the card sits idle. */
+/**
+ * Play button for the Continue card. The arc fills clockwise from the top to the project's overlay opacity
+ * when the card appears, and a soft glow behind the button breathes while the card sits idle.
+ */
 @Composable
-private fun PlayRing(modifier: Modifier = Modifier) {
+private fun PlayRing(opacity: Float, modifier: Modifier = Modifier) {
     val ring = MaterialTheme.colorScheme.primary
     val onCard = MaterialTheme.colorScheme.onPrimaryContainer
-    val animate = rememberAnimationsEnabled()
-    val spin: State<Float> = if (animate) {
-        rememberInfiniteTransition(label = "playRing").animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(tween(2600, easing = LinearEasing), RepeatMode.Restart),
-            label = "playRingSpin",
+    val target = opacity.coerceIn(0f, 1f)
+    val fill = remember { Animatable(0f) }
+    LaunchedEffect(target) { fill.animateTo(target, tween(900, easing = FastOutSlowInEasing)) }
+    val glow: State<Float> = if (rememberAnimationsEnabled()) {
+        rememberInfiniteTransition(label = "playGlow").animateFloat(
+            initialValue = 0.10f,
+            targetValue = 0.26f,
+            animationSpec = infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "playGlowAlpha",
         )
     } else {
-        remember { mutableStateOf(40f) }
+        remember { mutableStateOf(0.16f) }
     }
-    Box(modifier = modifier.size(48.dp), contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.size(52.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val width = 3.dp.toPx()
             val topLeft = Offset(width / 2, width / 2)
             val arcSize = Size(size.width - width, size.height - width)
+            drawCircle(ring.copy(alpha = glow.value), radius = size.minDimension / 2 - width)
             drawArc(ring.copy(alpha = 0.25f), 0f, 360f, false, topLeft, arcSize, style = Stroke(width))
-            drawArc(
-                color = ring,
-                startAngle = spin.value - 90f,
-                sweepAngle = 110f,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(width, cap = StrokeCap.Round),
-            )
+            if (fill.value > 0f) {
+                drawArc(
+                    color = ring,
+                    startAngle = -90f,
+                    sweepAngle = 360f * fill.value,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width, cap = StrokeCap.Round),
+                )
+            }
         }
-        Box(
-            modifier = Modifier.size(34.dp).clip(CircleShape).background(onCard.copy(alpha = 0.14f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = onCard)
-        }
+        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = onCard, modifier = Modifier.size(28.dp))
     }
 }
 
@@ -602,6 +591,40 @@ private fun SampleCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 2.dp),
+            )
+        }
+    }
+}
+
+/** Section title with a short Ochre accent bar, and an optional count in a small pill. */
+@Composable
+private fun SectionHeader(title: String, modifier: Modifier = Modifier, count: Int? = null) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(width = 4.dp, height = 20.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+        )
+        if (count != null) {
+            Text(
+                "$count",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
             )
         }
     }
