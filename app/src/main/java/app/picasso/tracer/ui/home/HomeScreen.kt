@@ -103,6 +103,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.delay
@@ -159,6 +160,11 @@ fun HomeScreen(
     val resume = if (browsing) projects.firstOrNull() else null
 
     Scaffold(
+        // Transparent so the ambient motion drawn behind shows through; content colour set explicitly
+        // because it would otherwise be derived from the transparent container.
+        modifier = Modifier.background(MaterialTheme.colorScheme.background).ambientMotion(),
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             if (showAds) {
