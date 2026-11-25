@@ -88,6 +88,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.Project
 import app.picasso.tracer.domain.model.TraceFilter
+import app.picasso.tracer.ui.common.picassoCard
 import app.picasso.tracer.ui.theme.PicassoBlack
 import app.picasso.tracer.ui.theme.PicassoPaper
 import coil.compose.AsyncImage
@@ -957,37 +958,50 @@ private fun EmptyHint(message: String) {
 
 @Composable
 private fun EmptyProjects() {
+    val primary = MaterialTheme.colorScheme.primary
+    // A soft ring that expands and fades from the icon, like a ripple. Static when animations are off.
+    val animate = rememberAnimationsEnabled()
+    val pulse: State<Float> = if (animate) {
+        rememberInfiniteTransition(label = "emptyPulse").animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(2200, easing = FastOutSlowInEasing), RepeatMode.Restart),
+            label = "emptyPulseProgress",
+        )
+    } else {
+        remember { mutableStateOf(0.3f) }
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 32.dp),
+            .picassoCard(24)
+            .padding(vertical = 28.dp, horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Slow bob so the empty screen feels alive without pulling attention from the sample row.
-        val bob by rememberInfiniteTransition(label = "emptyBob").animateFloat(
-            initialValue = -4f,
-            targetValue = 4f,
-            animationSpec = infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-            label = "emptyBobOffset",
-        )
-        Box(
-            modifier = Modifier
-                .graphicsLayer { translationY = bob.dp.toPx() }
-                .size(72.dp)
-                .background(
-                    MaterialTheme.colorScheme.secondaryContainer,
-                    CircleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Default.PhotoLibrary,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(32.dp),
-            )
+        Box(modifier = Modifier.size(88.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) {
+                val progress = pulse.value
+                drawCircle(
+                    color = primary.copy(alpha = 0.35f * (1f - progress)),
+                    radius = size.minDimension / 2 * (0.62f + 0.38f * progress),
+                    style = Stroke(2.dp.toPx()),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .background(primary.copy(alpha = 0.16f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.PhotoLibrary,
+                    contentDescription = null,
+                    tint = primary,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             stringResource(R.string.no_projects),
             style = MaterialTheme.typography.bodyMedium,
