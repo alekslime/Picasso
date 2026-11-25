@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -84,6 +85,8 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.Project
+import app.picasso.tracer.ui.theme.PicassoInk
+import app.picasso.tracer.ui.theme.PicassoPaper
 import coil.compose.AsyncImage
 import java.io.File
 import java.text.DateFormat
@@ -104,6 +107,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -246,9 +250,10 @@ fun HomeScreen(
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.entrance(3)) {
-                        items(samples) { item ->
+                        itemsIndexed(samples) { index, item ->
                             SampleCard(
                                 item = item,
+                                tint = SampleTints[index % SampleTints.size],
                                 enabled = !creating,
                                 onSelect = {
                                     viewModel.createSample(
@@ -541,9 +546,14 @@ private fun PlayRing(modifier: Modifier = Modifier) {
     }
 }
 
+/** Tile backgrounds for the sample row: Ochre, dusty rose, slate. Dark Ink text reads on all three. */
+private val SampleTints = listOf(Color(0xFFE99A52), Color(0xFFD79A9A), Color(0xFF8FA5C2))
+
+/** Coloured sample tile: the line art sits on a soft gradient of the tile colour, name below. */
 @Composable
 private fun SampleCard(
     item: SampleItem,
+    tint: Color,
     enabled: Boolean,
     onSelect: () -> Unit,
 ) {
@@ -552,13 +562,18 @@ private fun SampleCard(
         onClick = onSelect,
         enabled = enabled,
         interactionSource = press,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent,
         ),
-        modifier = Modifier.width(140.dp).pressScale(press),
+        modifier = Modifier.width(144.dp).pressScale(press),
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
+        Column(
+            modifier = Modifier
+                .background(Brush.verticalGradient(listOf(tint, tint.copy(alpha = 0.72f))))
+                .padding(10.dp),
+        ) {
             AsyncImage(
                 model = item.file,
                 contentDescription = null,
@@ -566,15 +581,18 @@ private fun SampleCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surface),
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(PicassoPaper),
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 stringResource(item.sample.nameRes),
                 style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = PicassoInk,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 2.dp),
             )
         }
     }
