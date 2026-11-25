@@ -95,7 +95,6 @@ import coil.compose.AsyncImage
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
-import kotlin.math.roundToInt
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -261,6 +260,7 @@ fun HomeScreen(
                                 tint = SampleTints[index % SampleTints.size],
                                 enabled = !creating,
                                 onSelect = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     viewModel.createSample(
                                         item.sample,
                                         context.getString(item.sample.nameRes),
@@ -316,12 +316,18 @@ fun HomeScreen(
                         FilterPill(
                             label = stringResource(R.string.filter_all),
                             selected = !favoritesOnly,
-                            onClick = { viewModel.setFavoritesOnly(false) },
+                            onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.setFavoritesOnly(false)
+                            },
                         )
                         FilterPill(
                             label = stringResource(R.string.filter_favorites),
                             selected = favoritesOnly,
-                            onClick = { viewModel.setFavoritesOnly(true) },
+                            onClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.setFavoritesOnly(true)
+                            },
                         )
                     }
                 }
@@ -490,7 +496,7 @@ private fun ResumeCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                 )
                 Text(
-                    stringResource(R.string.opacity_percent, (project.opacity.coerceIn(0f, 1f) * 100).roundToInt()),
+                    stringResource(R.string.opacity_percent, opacityPercent(project.opacity)),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -848,7 +854,7 @@ private fun OpacityMeter(opacity: Float, onContainer: Color, modifier: Modifier 
         }
         Spacer(Modifier.width(8.dp))
         Text(
-            stringResource(R.string.opacity_percent, (target * 100).roundToInt()),
+            stringResource(R.string.opacity_percent, opacityPercent(target)),
             style = MaterialTheme.typography.labelSmall,
             color = onContainer.copy(alpha = 0.8f),
         )
