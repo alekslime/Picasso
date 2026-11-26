@@ -49,7 +49,7 @@ private class FakeProjectDao : ProjectDao {
     private var nextLayerId = 1L
 
     override fun observeLayers(projectId: Long) = layers.map { list ->
-        list.filter { it.projectId == projectId }
+        list.filter { it.projectId == projectId }.sortedBy { it.sortOrder }
     }
 
     override suspend fun upsertLayer(entity: LayerEntity): Long {
@@ -369,5 +369,62 @@ class ProjectRepositoryTest {
         repo.updateProject(repo.getProject(id)!!.copy(baseVisible = false))
 
         assertFalse(repo.getProject(id)!!.baseVisible)
+    }
+
+    @Test
+    fun `new layers go on top of the stack`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "One")
+        repo.addLayer(project, "/img/l2.jpg", "Two")
+        repo.addLayer(project, "/img/l3.jpg", "Three")
+
+        val layers = repo.observeLayers(project).first()
+
+        assertEquals(listOf("One", "Two", "Three"), layers.map { it.name })
+        assertEquals(listOf(1, 2, 3), layers.map { it.sortOrder })
+    }
+
+    @Test
+    fun `a layer added after a delete still goes on top`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "One")
+        repo.addLayer(project, "/img/l2.jpg", "Two")
+        repo.deleteLayer(repo.observeLayers(project).first().first())
+        repo.addLayer(project, "/img/l3.jpg", "Three")
+
+        assertEquals(listOf("Two", "Three"), repo.observeLayers(project).first().map { it.name })
+    }
+
+    @Test
+    fun `reorderLayers saves the new stack order`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "One")
+        repo.addLayer(project, "/img/l2.jpg", "Two")
+        repo.addLayer(project, "/img/l3.jpg", "Three")
+        val ids = repo.observeLayers(project).first().map { it.id }
+
+        repo.reorderLayers(project, listOf(ids[2], ids[0], ids[1]))
+
+        assertEquals(listOf("Three", "One", "Two"), repo.observeLayers(project).first().map { it.name })
+    }
+
+    @Test
+    fun `reorderLayers ignores unknown ids and leaves placements alone`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "One", OverlayTransform(offsetX = 4f), TraceFilter.GRAYSCALE)
+        repo.addLayer(project, "/img/l2.jpg", "Two")
+        val ids = repo.observeLayers(project).first().map { it.id }
+
+        repo.reorderLayers(project, listOf(ids[1], 9_999L, ids[0]))
+
+        val layers = repo.observeLayers(project).first()
+        assertEquals(listOf("Two", "One"), layers.map { it.name })
+        val one = layers.first { it.name == "One" }
+        assertEquals(4f, one.transform.offsetX, 0.001f)
+        assertEquals(TraceFilter.GRAYSCALE, one.filter)
     }
 }

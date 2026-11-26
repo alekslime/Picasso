@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
@@ -37,7 +39,8 @@ import kotlin.math.roundToInt
 /**
  * A project's stack of reference images: the base image and the added layers. The selected
  * one is edited (placement, filter, opacity); the eye on each chip shows or hides it in the
- * stack, so several can be drawn at once.
+ * stack, so several can be drawn at once. Chips run from the bottom of the stack to the top;
+ * the arrows move the selected layer along it (the base always stays at the bottom).
  */
 @Composable
 fun LayersBar(
@@ -47,6 +50,7 @@ fun LayersBar(
     busy: Boolean,
     onSelect: (Long?) -> Unit,
     onToggleVisible: (Long?) -> Unit,
+    onMove: (Long, Int) -> Unit,
     onAdd: () -> Unit,
     onDelete: (OverlayLayer) -> Unit,
     onOpacity: (Long, Float) -> Unit,
@@ -89,6 +93,19 @@ fun LayersBar(
                 leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
             )
             if (active != null) {
+                val position = layers.indexOfFirst { it.id == active.id }
+                IconButton(onClick = { onMove(active.id, -1) }, enabled = position > 0) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.layer_send_back),
+                    )
+                }
+                IconButton(onClick = { onMove(active.id, 1) }, enabled = position < layers.lastIndex) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = stringResource(R.string.layer_bring_forward),
+                    )
+                }
                 IconButton(onClick = { renaming = active }) {
                     Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.rename))
                 }

@@ -108,6 +108,8 @@
     <string name="steps">Steps</string>
     <string name="layers">Layers</string>
     <string name="layer_base">Base</string>
+    <string name="layer_send_back">Send backward</string>
+    <string name="layer_bring_forward">Bring forward</string>
     <string name="layer_show">Show %1$s</string>
     <string name="layer_hide">Hide %1$s</string>
     <string name="layer_add">Add</string>

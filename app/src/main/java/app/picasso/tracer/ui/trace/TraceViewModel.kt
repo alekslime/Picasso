@@ -19,6 +19,7 @@ import app.picasso.tracer.camera.OverlayMode
 import app.picasso.tracer.camera.RecordingExporter
 import app.picasso.tracer.camera.RecordingSpeed
 import app.picasso.tracer.data.ImageStore
+import app.picasso.tracer.domain.model.LayerOrder
 import app.picasso.tracer.domain.model.OverlayLayer
 import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
@@ -349,6 +350,15 @@ class TraceViewModel @Inject constructor(
         } else if (state.layers.first { it.id == layerId }.visible.not()) {
             setLayerVisible(layerId, true)
         }
+    }
+
+    /** Moves a layer [offset] places up (positive) or down (negative) the stack; the base stays at the bottom. */
+    fun moveLayer(layerId: Long, offset: Int) {
+        val layers = _uiState.value.layers
+        val moved = LayerOrder.move(layers, layerId, offset)
+        if (moved.map { it.id } == layers.map { it.id }) return
+        _uiState.update { it.copy(layers = moved) } // the stack reorders at once; the rows catch up
+        viewModelScope.launch { runCatching { repository.reorderLayers(projectId, moved.map { it.id }) } }
     }
 
     /** Shows or hides one layer in the stack. */

@@ -17,4 +17,6 @@ data class OverlayLayer(
     val filter: TraceFilter = TraceFilter.ORIGINAL,
     /** Whether the layer is drawn in the stack (used once layers can be shown together). */
     val visible: Boolean = true,
+    /** Place in the stack, bottom to top (1 is just above the base image). */
+    val sortOrder: Int = 0,
 )

@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [ProjectEntity::class, LayerEntity::class], version = 7, exportSchema = false)
+@Database(entities = [ProjectEntity::class, LayerEntity::class], version = 8, exportSchema = false)
 abstract class PicassoDatabase : RoomDatabase() {
     abstract fun projectDao(): ProjectDao
 
@@ -85,6 +85,24 @@ abstract class PicassoDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Layers get an explicit stack order. Existing layers keep the order they were added in
+         * (oldest lowest); the id breaks ties between layers added in the same millisecond.
+         */
+        val MIGRATION_7_8_SQL = listOf(
+            "ALTER TABLE layers ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0",
+            "UPDATE layers SET sortOrder = (SELECT COUNT(*) FROM layers AS earlier " +
+                "WHERE earlier.projectId = layers.projectId AND " +
+                "(earlier.createdAt < layers.createdAt OR " +
+                "(earlier.createdAt = layers.createdAt AND earlier.id <= layers.id)))",
+        )
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                MIGRATION_7_8_SQL.forEach { db.execSQL(it) }
+            }
+        }
+
         /** Every migration, in order; both database builders use this so none is forgotten. */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_1_2,
@@ -93,6 +111,7 @@ abstract class PicassoDatabase : RoomDatabase() {
             MIGRATION_4_5,
             MIGRATION_5_6,
             MIGRATION_6_7,
+            MIGRATION_7_8,
         )
     }
 }

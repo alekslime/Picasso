@@ -38,4 +38,5 @@ data class LayerEntity(
     val flipV: Boolean = false,
     val filter: String = "ORIGINAL",
     val visible: Boolean = true,
+    val sortOrder: Int = 0,
 )

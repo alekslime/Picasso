@@ -35,6 +35,9 @@ interface ProjectRepository {
         filter: TraceFilter = TraceFilter.ORIGINAL,
     ): Long
 
+    /** Saves the stack order: [orderedIds] runs from the bottom layer to the top one. */
+    suspend fun reorderLayers(projectId: Long, orderedIds: List<Long>)
+
     /** Persists a changed name, opacity, placement, filter or visibility on a stored layer. */
     suspend fun updateLayer(layer: OverlayLayer)
 

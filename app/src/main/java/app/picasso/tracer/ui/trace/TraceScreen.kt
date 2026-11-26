@@ -535,6 +535,7 @@ fun TraceScreen(
                                     baseVisible = state.project?.baseVisible ?: true,
                                     busy = state.layerBusy,
                                     onSelect = viewModel::selectLayer,
+                                    onMove = viewModel::moveLayer,
                                     onToggleVisible = { id ->
                                         if (id == null) {
                                             viewModel.setBaseVisible(state.project?.baseVisible != true)

@@ -71,6 +71,8 @@ class ProjectRepositoryImpl @Inject constructor(
         filter: TraceFilter,
     ): Long {
         val now = System.currentTimeMillis()
+        // New layers go on top of the stack.
+        val top = dao.getLayers(projectId).maxOfOrNull { it.sortOrder } ?: 0
         return dao.upsertLayer(
             OverlayLayer(
                 projectId = projectId,
@@ -79,6 +81,7 @@ class ProjectRepositoryImpl @Inject constructor(
                 createdAt = now,
                 transform = transform,
                 filter = filter,
+                sortOrder = top + 1,
             ).toEntity(),
         )
     }
@@ -86,6 +89,14 @@ class ProjectRepositoryImpl @Inject constructor(
     override suspend fun deleteLayer(layer: OverlayLayer) {
         dao.deleteLayerById(layer.id)
         imageFiles.delete(layer.imagePath)
+    }
+
+    override suspend fun reorderLayers(projectId: Long, orderedIds: List<Long>) {
+        val stored = dao.getLayers(projectId).associateBy { it.id }
+        orderedIds.forEachIndexed { index, id ->
+            val entity = stored[id] ?: return@forEachIndexed
+            if (entity.sortOrder != index + 1) dao.updateLayer(entity.copy(sortOrder = index + 1))
+        }
     }
 
     override suspend fun updateLayer(layer: OverlayLayer) {
@@ -110,6 +121,7 @@ fun LayerEntity.toDomain(): OverlayLayer = OverlayLayer(
     ),
     filter = runCatching { TraceFilter.valueOf(filter) }.getOrDefault(TraceFilter.ORIGINAL),
     visible = visible,
+    sortOrder = sortOrder,
 )
 
 fun OverlayLayer.toEntity(): LayerEntity = LayerEntity(
@@ -127,6 +139,7 @@ fun OverlayLayer.toEntity(): LayerEntity = LayerEntity(
     flipV = transform.flipV,
     filter = filter.name,
     visible = visible,
+    sortOrder = sortOrder,
 )
 
 fun ProjectEntity.toDomain(): Project = Project(
