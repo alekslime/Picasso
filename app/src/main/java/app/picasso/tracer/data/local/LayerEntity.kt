@@ -8,8 +8,7 @@ import androidx.room.PrimaryKey
 /**
  * Extra reference images stacked on one project (sketch, value study, color
  * pass…). The project's own image stays the base; layers are selected, never
- * blended, and share the project's transform and filter. Each layer has its
- * own opacity.
+ * blended by default. Each layer has its own opacity, placement and filter.
  */
 @Entity(
     tableName = "layers",
@@ -31,4 +30,12 @@ data class LayerEntity(
     val createdAt: Long,
     /** Fraction of the layer drawn; the base image keeps the project's opacity. */
     val opacity: Float = 1f,
+    val offsetX: Float = 0f,
+    val offsetY: Float = 0f,
+    val scale: Float = 1f,
+    val rotationDeg: Float = 0f,
+    val flipH: Boolean = false,
+    val flipV: Boolean = false,
+    val filter: String = "ORIGINAL",
+    val visible: Boolean = true,
 )

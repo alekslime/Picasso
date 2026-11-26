@@ -31,7 +31,7 @@ class PicassoWidgetProvider : AppWidgetProvider() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = Room.databaseBuilder(context, PicassoDatabase::class.java, "picasso.db")
-                    .addMigrations(PicassoDatabase.MIGRATION_1_2, PicassoDatabase.MIGRATION_2_3, PicassoDatabase.MIGRATION_3_4, PicassoDatabase.MIGRATION_4_5)
+                    .addMigrations(*PicassoDatabase.ALL_MIGRATIONS)
                     .build()
                 val latest = runCatching { db.projectDao().observeAll().first().firstOrNull() }.getOrNull()
                 db.close()

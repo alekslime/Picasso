@@ -15,4 +15,6 @@ data class Project(
     val gridCols: Int = 3,
     val guideType: GuideType = GuideType.GRID,
     val favorite: Boolean = false,
+    /** Whether the base image is drawn in the layer stack. */
+    val baseVisible: Boolean = true,
 )

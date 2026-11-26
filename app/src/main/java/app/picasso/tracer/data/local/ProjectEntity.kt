@@ -23,4 +23,5 @@ data class ProjectEntity(
     val gridCols: Int = 3,
     val guideType: String = "GRID",
     val favorite: Boolean = false,
+    val baseVisible: Boolean = true,
 )

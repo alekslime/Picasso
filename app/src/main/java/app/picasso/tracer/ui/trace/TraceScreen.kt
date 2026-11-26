@@ -67,6 +67,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -328,19 +329,37 @@ fun TraceScreen(
                         val overlayContent = stepOrFiltered?.let { OverlayContent.Pixels(it) }
                             ?: OverlayContent.FileImage(File(state.activeImagePath ?: project.imagePath))
                         val effectiveFilter = if (stepActive) TraceFilter.ORIGINAL else state.filter
-                        Crossfade(targetState = overlayContent to effectiveFilter, label = "overlay") { (content, filter) ->
-                            OverlayImage(
-                                content = content,
-                                transform = viewModel.effectiveTransform(state),
-                                opacity = state.activeLayer?.opacity ?: state.opacity,
-                                locked = state.locked,
-                                animationKey = state.placementTick,
-                                // Light tuning applies on top of everything, including step layers.
-                                colorFilter = remember(filter, state.brightness, state.contrast) {
-                                    GpuFilters.colorFilterFor(filter, state.brightness, state.contrast)
-                                },
-                                onGesture = viewModel::onOverlayGesture,
-                            )
+                        // Steps and training wheels are about the image being edited; while they are on,
+                        // the rest of the stack stays out of the way.
+                        val showOthers = training == null && state.stepIndex == null
+                        state.overlayStack().forEach { entry ->
+                            key(entry.key) {
+                                if (entry.isActive) {
+                                    Crossfade(targetState = overlayContent to effectiveFilter, label = "overlay") { (content, filter) ->
+                                        OverlayImage(
+                                            content = content,
+                                            transform = viewModel.effectiveTransform(state),
+                                            opacity = entry.opacity,
+                                            locked = state.locked,
+                                            animationKey = state.placementTick,
+                                            // Light tuning applies on top of everything, including step layers.
+                                            colorFilter = remember(filter, state.brightness, state.contrast) {
+                                                GpuFilters.colorFilterFor(filter, state.brightness, state.contrast)
+                                            },
+                                            onGesture = viewModel::onOverlayGesture,
+                                        )
+                                    }
+                                } else if (showOthers) {
+                                    StackOverlay(
+                                        entry = entry,
+                                        processed = state.stackBitmaps[entry.key],
+                                        transform = viewModel.effectiveTransform(state, entry.transform),
+                                        brightness = state.brightness,
+                                        contrast = state.contrast,
+                                        animationKey = state.placementTick,
+                                    )
+                                }
+                            }
                         }
                     }
                     val trainingGuides = state.trainingLevel == app.picasso.tracer.domain.model.HelpLevel.GUIDES
@@ -513,8 +532,16 @@ fun TraceScreen(
                                 LayersBar(
                                     layers = state.layers,
                                     activeLayerId = state.activeLayerId,
+                                    baseVisible = state.project?.baseVisible ?: true,
                                     busy = state.layerBusy,
                                     onSelect = viewModel::selectLayer,
+                                    onToggleVisible = { id ->
+                                        if (id == null) {
+                                            viewModel.setBaseVisible(state.project?.baseVisible != true)
+                                        } else {
+                                            viewModel.setLayerVisible(id, state.layers.firstOrNull { it.id == id }?.visible != true)
+                                        }
+                                    },
                                     onAdd = {
                                         pickLayerImage.launch(
                                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),

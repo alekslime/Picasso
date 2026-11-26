@@ -303,4 +303,71 @@ class ProjectRepositoryTest {
         assertEquals("Renamed", reloaded.name)
         assertEquals(0.4f, reloaded.opacity, 0.001f)
     }
+
+    @Test
+    fun `a new layer starts with the given placement and filter`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        val placed = OverlayTransform(offsetX = 12f, offsetY = -3f, scale = 2f, rotationDeg = 45f, flipH = true)
+        repo.addLayer(project, "/img/l1.jpg", "Sketch", placed, TraceFilter.GRAYSCALE)
+
+        val layer = repo.observeLayers(project).first().single()
+
+        assertEquals(placed, layer.transform)
+        assertEquals(TraceFilter.GRAYSCALE, layer.filter)
+        assertTrue(layer.visible)
+    }
+
+    @Test
+    fun `a layer added without a placement starts at identity`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "Sketch")
+
+        val layer = repo.observeLayers(project).first().single()
+
+        assertEquals(OverlayTransform.initial(), layer.transform)
+        assertEquals(TraceFilter.ORIGINAL, layer.filter)
+    }
+
+    @Test
+    fun `updateLayer persists placement, filter and visibility`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "Sketch")
+        val layer = repo.observeLayers(project).first().single()
+        val moved = OverlayTransform(offsetX = 5f, offsetY = 6f, scale = 1.5f, rotationDeg = 90f, flipV = true)
+
+        repo.updateLayer(layer.copy(transform = moved, filter = TraceFilter.HIGH_CONTRAST, visible = false))
+
+        val reloaded = repo.observeLayers(project).first().single()
+        assertEquals(moved, reloaded.transform)
+        assertEquals(TraceFilter.HIGH_CONTRAST, reloaded.filter)
+        assertFalse(reloaded.visible)
+    }
+
+    @Test
+    fun `layers keep placements independent of each other and the project`() = runTest {
+        val repo = repository()
+        val project = repo.createProject("/img/a.jpg", "A")
+        repo.addLayer(project, "/img/l1.jpg", "One", OverlayTransform(offsetX = 1f), TraceFilter.ORIGINAL)
+        repo.addLayer(project, "/img/l2.jpg", "Two", OverlayTransform(offsetX = 2f), TraceFilter.GRAYSCALE)
+
+        val layers = repo.observeLayers(project).first()
+
+        assertEquals(listOf(1f, 2f), layers.map { it.transform.offsetX })
+        assertEquals(listOf(TraceFilter.ORIGINAL, TraceFilter.GRAYSCALE), layers.map { it.filter })
+        assertEquals(OverlayTransform.initial(), repo.getProject(project)?.transform)
+    }
+
+    @Test
+    fun `base visibility defaults on and persists`() = runTest {
+        val repo = repository()
+        val id = repo.createProject("/img/a.jpg", "A")
+        assertTrue(repo.getProject(id)!!.baseVisible)
+
+        repo.updateProject(repo.getProject(id)!!.copy(baseVisible = false))
+
+        assertFalse(repo.getProject(id)!!.baseVisible)
+    }
 }

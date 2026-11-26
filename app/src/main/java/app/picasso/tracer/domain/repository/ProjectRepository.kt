@@ -1,6 +1,8 @@
 package app.picasso.tracer.domain.repository
 
 import app.picasso.tracer.domain.model.OverlayLayer
+import app.picasso.tracer.domain.model.TraceFilter
+import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
 import kotlinx.coroutines.flow.Flow
 
@@ -21,10 +23,19 @@ interface ProjectRepository {
 
     fun observeLayers(projectId: Long): Flow<List<OverlayLayer>>
 
-    /** Persists an already-stored image as a layer; returns the layer id. */
-    suspend fun addLayer(projectId: Long, imagePath: String, name: String): Long
+    /**
+     * Persists an already-stored image as a layer; returns the layer id. The layer starts with the
+     * given placement and filter (by default the identity placement and no filter).
+     */
+    suspend fun addLayer(
+        projectId: Long,
+        imagePath: String,
+        name: String,
+        transform: OverlayTransform = OverlayTransform.initial(),
+        filter: TraceFilter = TraceFilter.ORIGINAL,
+    ): Long
 
-    /** Persists changed name and/or opacity on a stored layer. */
+    /** Persists a changed name, opacity, placement, filter or visibility on a stored layer. */
     suspend fun updateLayer(layer: OverlayLayer)
 
     suspend fun deleteLayer(layer: OverlayLayer)

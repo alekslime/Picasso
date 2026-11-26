@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,16 +35,18 @@ import app.picasso.tracer.domain.model.OverlayLayer
 import kotlin.math.roundToInt
 
 /**
- * Picks which of a project's reference images the overlay shows: the base image
- * or one of the added layers. Layers are selected, never blended, share the
- * project's transform and filter, and each has its own opacity.
+ * A project's stack of reference images: the base image and the added layers. The selected
+ * one is edited (placement, filter, opacity); the eye on each chip shows or hides it in the
+ * stack, so several can be drawn at once.
  */
 @Composable
 fun LayersBar(
     layers: List<OverlayLayer>,
     activeLayerId: Long?,
+    baseVisible: Boolean,
     busy: Boolean,
     onSelect: (Long?) -> Unit,
+    onToggleVisible: (Long?) -> Unit,
     onAdd: () -> Unit,
     onDelete: (OverlayLayer) -> Unit,
     onOpacity: (Long, Float) -> Unit,
@@ -62,16 +66,20 @@ fun LayersBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PicassoFilterChip(
-                selected = activeLayerId == null,
-                onClick = { onSelect(null) },
+            LayerChip(
                 label = stringResource(R.string.layer_base),
+                selected = activeLayerId == null,
+                visible = baseVisible,
+                onSelect = { onSelect(null) },
+                onToggleVisible = { onToggleVisible(null) },
             )
             layers.forEach { layer ->
-                PicassoFilterChip(
-                    selected = layer.id == activeLayerId,
-                    onClick = { onSelect(layer.id) },
+                LayerChip(
                     label = layer.name,
+                    selected = layer.id == activeLayerId,
+                    visible = layer.visible,
+                    onSelect = { onSelect(layer.id) },
+                    onToggleVisible = { onToggleVisible(layer.id) },
                 )
             }
             PicassoFilterChip(
@@ -145,6 +153,27 @@ fun LayersBar(
                 onRename(layer.id, name)
             },
         )
+    }
+}
+
+/** A layer's chip with its eye: tapping the chip selects it, the eye shows or hides it. */
+@Composable
+private fun LayerChip(
+    label: String,
+    selected: Boolean,
+    visible: Boolean,
+    onSelect: () -> Unit,
+    onToggleVisible: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        PicassoFilterChip(selected = selected, onClick = onSelect, label = label)
+        IconButton(onClick = onToggleVisible) {
+            Icon(
+                if (visible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                contentDescription = stringResource(if (visible) R.string.layer_hide else R.string.layer_show, label),
+                tint = if (visible) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

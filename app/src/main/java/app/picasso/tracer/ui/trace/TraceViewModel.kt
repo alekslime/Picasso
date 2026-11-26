@@ -108,6 +108,8 @@ data class TraceUiState(
     val layers: List<OverlayLayer> = emptyList(),
     val activeLayerId: Long? = null,
     val layerBusy: Boolean = false,
+    // Processed bitmaps for stacked images other than the active one, by stack key.
+    val stackBitmaps: Map<Long, StackBitmap> = emptyMap(),
     // Training wheels: null = off. The level is remembered across sessions in settings.
     val trainingLevel: HelpLevel? = null,
     // Set after a finished tracing is saved: offers to take one level of help away.
@@ -124,6 +126,37 @@ data class TraceUiState(
     /** The layer on screen, or null when the base image is active. */
     val activeLayer: OverlayLayer?
         get() = layers.firstOrNull { it.id == activeLayerId }
+
+    /**
+     * Copies the on-screen placement and filter back into whichever image owns them (the base
+     * project, or the active layer), so they survive switching to another image.
+     */
+    fun withActiveSettingsStored(): TraceUiState {
+        val layer = activeLayer
+        return if (layer == null) {
+            copy(project = project?.copy(transform = transform, filter = filter))
+        } else {
+            copy(
+                layers = layers.map {
+                    if (it.id == layer.id) it.copy(transform = transform, filter = filter) else it
+                },
+            )
+        }
+    }
+
+    /**
+     * Shows [layerId]'s image (null = the base image): loads that image's own placement and
+     * filter onto the screen. The overlay springs from the old placement to the new one.
+     */
+    fun withActiveImage(layerId: Long?): TraceUiState {
+        val layer = layers.firstOrNull { it.id == layerId }
+        return copy(
+            activeLayerId = layer?.id,
+            transform = layer?.transform ?: project?.transform ?: transform,
+            filter = layer?.filter ?: project?.filter ?: filter,
+            placementTick = placementTick + 1,
+        )
+    }
 }
 
 @HiltViewModel
@@ -149,6 +182,7 @@ class TraceViewModel @Inject constructor(
     private var filterJob: Job? = null
     private var strobeJob: Job? = null
     private var stepsJob: Job? = null
+    private var stackJob: Job? = null
     private var tickerJob: Job? = null
     private val arAnchor = ArAnchor()
     private var timelapseJob: Job? = null
@@ -183,6 +217,7 @@ class TraceViewModel @Inject constructor(
                     _uiState.update { it.copy(showTutorial = true, tutorialStep = 0) }
                 }
                 if (project.filter.needsBitmap()) applyBitmapFilter(project)
+                refreshStackBitmaps()
                 settings.settings.first().trainingLevel?.let { applyTrainingLevel(it, persist = false) }
             }
         }
@@ -267,7 +302,8 @@ class TraceViewModel @Inject constructor(
         val state = _uiState.value
         val activeGone = state.activeLayerId != null && layers.none { it.id == state.activeLayerId }
         _uiState.update { it.copy(layers = layers) }
-        if (activeGone) showImage(null)
+        // The layer is gone, so there is nothing to store for it; fall back to the base image.
+        if (activeGone) showImage(null, storeLeaving = false) else refreshStackBitmaps()
     }
 
     /** Adds [source] (picked from the gallery) as a layer on this project and shows it. */
@@ -278,7 +314,7 @@ class TraceViewModel @Inject constructor(
             try {
                 val path = imageStore.persist(source)
                 val id = try {
-                    repository.addLayer(projectId, path, name)
+                    repository.addLayer(projectId, path, name, _uiState.value.transform, _uiState.value.filter)
                 } catch (e: Exception) {
                     imageStore.delete(path) // do not orphan the copy if the insert failed
                     throw e
@@ -307,6 +343,68 @@ class TraceViewModel @Inject constructor(
         if (layerId == state.activeLayerId) return
         if (layerId != null && state.layers.none { it.id == layerId }) return
         showImage(layerId)
+        // Picking an image to work on turns it on.
+        if (layerId == null) {
+            if (state.project?.baseVisible == false) setBaseVisible(true)
+        } else if (state.layers.first { it.id == layerId }.visible.not()) {
+            setLayerVisible(layerId, true)
+        }
+    }
+
+    /** Shows or hides one layer in the stack. */
+    fun setLayerVisible(layerId: Long, visible: Boolean) {
+        val layer = _uiState.value.layers.firstOrNull { it.id == layerId } ?: return
+        // The eye responds at once; the saved row catches up.
+        _uiState.update { s ->
+            s.copy(layers = s.layers.map { if (it.id == layerId) it.copy(visible = visible) else it })
+        }
+        viewModelScope.launch {
+            runCatching { repository.updateLayer(liveLayer(layer).copy(visible = visible)) }
+        }
+        refreshStackBitmaps()
+    }
+
+    /** Shows or hides the base image in the stack; saved with the project. */
+    fun setBaseVisible(visible: Boolean) {
+        _uiState.update { it.copy(project = it.project?.copy(baseVisible = visible)) }
+        refreshStackBitmaps()
+    }
+
+    /** [layer] with the on-screen placement and filter if it is the one being edited. */
+    private fun liveLayer(layer: OverlayLayer): OverlayLayer {
+        val s = _uiState.value
+        return if (s.activeLayerId == layer.id) layer.copy(transform = s.transform, filter = s.filter) else layer
+    }
+
+    /**
+     * Builds the processed bitmaps (edges, posterize) the stack needs for images other than the
+     * active one. Entries that are no longer needed or are out of date are dropped.
+     */
+    private fun refreshStackBitmaps() {
+        stackJob?.cancel()
+        stackJob = viewModelScope.launch {
+            val wanted = _uiState.value.overlayStack().filter { !it.isActive && it.filter.needsBitmap() }
+            _uiState.update { s ->
+                s.copy(
+                    stackBitmaps = s.stackBitmaps.filter { (key, held) ->
+                        wanted.any { it.key == key && it.imagePath == held.path && it.filter == held.filter }
+                    },
+                )
+            }
+            for (entry in wanted) {
+                val held = _uiState.value.stackBitmaps[entry.key]
+                if (held != null && held.path == entry.imagePath && held.filter == entry.filter) continue
+                val bitmap = try {
+                    val source = imageStore.loadBitmap(entry.imagePath) ?: error("Missing image")
+                    filters.filtered(entry.imagePath, source, entry.filter)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e // a newer refresh replaced this one
+                } catch (_: Exception) {
+                    continue
+                }
+                _uiState.update { it.copy(stackBitmaps = it.stackBitmaps + (entry.key to StackBitmap(entry.imagePath, entry.filter, bitmap))) }
+            }
+        }
     }
 
     fun deleteLayer(layer: OverlayLayer) {
@@ -320,7 +418,7 @@ class TraceViewModel @Inject constructor(
     fun setLayerOpacity(layerId: Long, opacity: Float) {
         val layer = _uiState.value.layers.firstOrNull { it.id == layerId } ?: return
         viewModelScope.launch {
-            runCatching { repository.updateLayer(layer.copy(opacity = opacity.coerceIn(0f, 1f))) }
+            runCatching { repository.updateLayer(liveLayer(layer).copy(opacity = opacity.coerceIn(0f, 1f))) }
         }
     }
 
@@ -330,7 +428,7 @@ class TraceViewModel @Inject constructor(
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            runCatching { repository.updateLayer(layer.copy(name = trimmed)) }
+            runCatching { repository.updateLayer(liveLayer(layer).copy(name = trimmed)) }
         }
     }
 
@@ -338,19 +436,23 @@ class TraceViewModel @Inject constructor(
      * Switches the displayed image. Filtered bitmaps and step layers belong to one image,
      * so both are dropped and rebuilt lazily for the new one.
      */
-    private fun showImage(layerId: Long?) {
+    private fun showImage(layerId: Long?, storeLeaving: Boolean = true) {
         filterJob?.cancel()
         stepsJob?.cancel()
+        val leaving = _uiState.value
         _uiState.update {
-            it.copy(
-                activeLayerId = layerId,
+            val next = (if (storeLeaving) it.withActiveSettingsStored() else it).withActiveImage(layerId)
+            next.copy(
                 filteredBitmap = null,
-                filterLoading = it.filter.needsBitmap() && it.trainingLevel == null,
+                filterLoading = next.filter.needsBitmap() && next.trainingLevel == null,
                 steps = emptyList(),
                 stepIndex = null,
                 stepsLoading = false,
             )
         }
+        // The debounced saver would write the new image's settings; save the old ones right now.
+        if (storeLeaving && leaving.activeLayerId != null) viewModelScope.launch { persist(leaving) }
+        refreshStackBitmaps()
         val state = _uiState.value
         val project = state.project ?: return
         if (state.trainingLevel != null) {
@@ -396,18 +498,23 @@ class TraceViewModel @Inject constructor(
     private suspend fun persist(state: TraceUiState) {
         val project = state.project ?: return
         if (state.loading) return
+        val layer = state.activeLayer
         runCatching {
+            // On screen is the base image's placement and filter, unless a layer is active: then
+            // the base keeps what the project already holds and the layer gets the on-screen ones.
+            val base = if (layer == null) project.copy(transform = state.transform, filter = state.filter) else project
             repository.updateProject(
-                project.copy(
-                    transform = state.transform,
+                base.copy(
                     opacity = state.opacity,
-                    filter = state.filter,
                     gridVisible = state.gridVisible,
                     gridRows = state.gridRows,
                     gridCols = state.gridCols,
                     guideType = state.guideType,
                 ),
             )
+            if (layer != null && (layer.transform != state.transform || layer.filter != state.filter)) {
+                repository.updateLayer(layer.copy(transform = state.transform, filter = state.filter))
+            }
         }
     }
 
@@ -463,8 +570,8 @@ class TraceViewModel @Inject constructor(
     }
 
     /** Display transform: user base plus live AR drift when anchored. */
-    fun effectiveTransform(state: TraceUiState): OverlayTransform =
-        if (state.overlayMode == OverlayMode.AR) arAnchor.resolve(state.transform) else state.transform
+    fun effectiveTransform(state: TraceUiState, transform: OverlayTransform = state.transform): OverlayTransform =
+        if (state.overlayMode == OverlayMode.AR) arAnchor.resolve(transform) else transform
 
     fun toggleAnchorMode(activity: Activity) {
         if (_uiState.value.overlayMode == OverlayMode.AR) {
@@ -577,8 +684,15 @@ class TraceViewModel @Inject constructor(
     fun resetView() {
         viewModelScope.launch {
             val opacity = settings.settings.first().defaultOpacity
+            val layer = _uiState.value.activeLayer
+            // A layer resets its own opacity; the base opacity stays with the base image.
+            if (layer != null) runCatching { repository.updateLayer(liveLayer(layer).copy(opacity = opacity)) }
             _uiState.update {
-                it.copy(transform = OverlayTransform.initial(), opacity = opacity, placementTick = it.placementTick + 1)
+                it.copy(
+                    transform = OverlayTransform.initial(),
+                    opacity = if (layer == null) opacity else it.opacity,
+                    placementTick = it.placementTick + 1,
+                )
             }
         }
     }

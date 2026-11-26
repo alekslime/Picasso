@@ -63,15 +63,23 @@ class ProjectRepositoryImpl @Inject constructor(
     override fun observeLayers(projectId: Long): Flow<List<OverlayLayer>> =
         dao.observeLayers(projectId).map { list -> list.map { it.toDomain() } }
 
-    override suspend fun addLayer(projectId: Long, imagePath: String, name: String): Long {
+    override suspend fun addLayer(
+        projectId: Long,
+        imagePath: String,
+        name: String,
+        transform: OverlayTransform,
+        filter: TraceFilter,
+    ): Long {
         val now = System.currentTimeMillis()
         return dao.upsertLayer(
-            LayerEntity(
+            OverlayLayer(
                 projectId = projectId,
                 imagePath = imagePath,
                 name = name,
                 createdAt = now,
-            ),
+                transform = transform,
+                filter = filter,
+            ).toEntity(),
         )
     }
 
@@ -92,6 +100,16 @@ fun LayerEntity.toDomain(): OverlayLayer = OverlayLayer(
     name = name,
     createdAt = createdAt,
     opacity = opacity,
+    transform = OverlayTransform(
+        offsetX = offsetX,
+        offsetY = offsetY,
+        scale = scale,
+        rotationDeg = rotationDeg,
+        flipH = flipH,
+        flipV = flipV,
+    ),
+    filter = runCatching { TraceFilter.valueOf(filter) }.getOrDefault(TraceFilter.ORIGINAL),
+    visible = visible,
 )
 
 fun OverlayLayer.toEntity(): LayerEntity = LayerEntity(
@@ -101,6 +119,14 @@ fun OverlayLayer.toEntity(): LayerEntity = LayerEntity(
     name = name,
     createdAt = createdAt,
     opacity = opacity,
+    offsetX = transform.offsetX,
+    offsetY = transform.offsetY,
+    scale = transform.scale,
+    rotationDeg = transform.rotationDeg,
+    flipH = transform.flipH,
+    flipV = transform.flipV,
+    filter = filter.name,
+    visible = visible,
 )
 
 fun ProjectEntity.toDomain(): Project = Project(
@@ -124,6 +150,7 @@ fun ProjectEntity.toDomain(): Project = Project(
     gridCols = gridCols,
     guideType = runCatching { GuideType.valueOf(guideType) }.getOrDefault(GuideType.GRID),
     favorite = favorite,
+    baseVisible = baseVisible,
 )
 
 fun Project.toEntity(updatedAt: Long): ProjectEntity = ProjectEntity(
@@ -145,4 +172,5 @@ fun Project.toEntity(updatedAt: Long): ProjectEntity = ProjectEntity(
     gridCols = gridCols,
     guideType = guideType.name,
     favorite = favorite,
+    baseVisible = baseVisible,
 )
