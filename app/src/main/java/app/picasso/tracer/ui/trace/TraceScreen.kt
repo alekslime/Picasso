@@ -195,7 +195,8 @@ fun TraceScreen(
         if (noticeRes != null) {
             if (noticeRes == R.string.saved_image ||
                 noticeRes == R.string.before_after_saved ||
-                noticeRes == R.string.recording_saved
+                noticeRes == R.string.recording_saved ||
+                noticeRes == R.string.timelapse_video_saved
             ) {
                 successTick++
             }
@@ -223,7 +224,17 @@ fun TraceScreen(
             viewModel.stopRecording()
             return
         }
-        if (isGranted(Manifest.permission.RECORD_AUDIO)) {
+        if (state.recordingSpeed.isSpedUp) {
+            // Timelapses are silent, so there is no microphone prompt; only old Androids
+            // still need storage permission for the gallery.
+            val storageOk = Build.VERSION.SDK_INT > Build.VERSION_CODES.P ||
+                isGranted(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            if (storageOk) {
+                viewModel.startRecording(withAudio = false)
+            } else {
+                requestRecordPermissions.launch(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE))
+            }
+        } else if (isGranted(Manifest.permission.RECORD_AUDIO)) {
             viewModel.startRecording(withAudio = true)
         } else {
             showAudioDialog = true
@@ -409,6 +420,14 @@ fun TraceScreen(
                         )
                     }
 
+                    if (state.recordingProcessing) {
+                        ProcessingPill(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp),
+                        )
+                    }
+
                     SnackbarHost(
                         snackbar,
                         modifier = Modifier
@@ -542,6 +561,9 @@ fun TraceScreen(
                     capture = {
                                 RecordBar(
                                     recording = cameraState.recording,
+                                    speed = state.recordingSpeed,
+                                    processing = state.recordingProcessing,
+                                    onSpeed = viewModel::setRecordingSpeed,
                                     onToggle = ::onRecordToggle,
                                 )
                                 TimelapseBar(

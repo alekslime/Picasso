@@ -117,6 +117,10 @@ private class FakeSettingsRepository(
     override suspend fun setTrainingLevel(level: app.picasso.tracer.domain.model.HelpLevel?) {
         state.update { it.copy(trainingLevel = level) }
     }
+
+    override suspend fun setRecordingSpeed(speed: app.picasso.tracer.camera.RecordingSpeed) {
+        state.update { it.copy(recordingSpeed = speed) }
+    }
 }
 
 class ProjectRepositoryTest {

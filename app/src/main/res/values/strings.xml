@@ -141,6 +141,11 @@
     <string name="save_image">Save image</string>
     <string name="saved_image">Image saved to gallery</string>
     <string name="recording_failed">Recording failed</string>
+    <string name="recording_speed">Playback speed</string>
+    <string name="recording_speed_hint">Faster than 1x saves a timelapse without sound.</string>
+    <string name="timelapse_video_saved">Timelapse saved to gallery</string>
+    <string name="timelapse_video_unchanged">Couldn\'t speed it up, saved at normal speed</string>
+    <string name="timelapse_processing">Making timelapse…</string>
     <string name="back">Back</string>
     <string name="reset_view">Reset view</string>
     <string name="collapse_panel">Hide panel</string>

@@ -1,5 +1,6 @@
 package app.picasso.tracer.domain.repository
 
+import app.picasso.tracer.camera.RecordingSpeed
 import app.picasso.tracer.domain.model.HelpLevel
 import app.picasso.tracer.domain.model.PicassoSettings
 import app.picasso.tracer.domain.model.ThemeMode
@@ -24,4 +25,7 @@ interface SettingsRepository {
 
     /** Remembers the training wheels level; null turns training wheels off. */
     suspend fun setTrainingLevel(level: HelpLevel?)
+
+    /** Remembers the speed new recordings are saved at. */
+    suspend fun setRecordingSpeed(speed: RecordingSpeed)
 }

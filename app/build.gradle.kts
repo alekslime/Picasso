@@ -120,6 +120,11 @@ dependencies {
     implementation(libs.camerax.video)
     implementation(libs.camerax.view)
 
+    // Timelapse: speeds a finished recording up on save (Transformer re-encodes it).
+    implementation(libs.media3.common)
+    implementation(libs.media3.effect)
+    implementation(libs.media3.transformer)
+
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     ksp(libs.hilt.compiler)

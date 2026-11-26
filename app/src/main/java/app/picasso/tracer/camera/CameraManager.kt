@@ -10,6 +10,7 @@ import androidx.camera.core.Preview
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.FileOutputOptions
 import androidx.camera.video.MediaStoreOutputOptions
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
@@ -20,6 +21,7 @@ import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -80,8 +82,18 @@ class CameraManager @Inject constructor(
         _state.update { it.copy(torchOn = on) }
     }
 
-    /** Records the session to Movies/Picasso in the MediaStore. Audio is optional. */
-    fun startRecording(fileName: String, withAudio: Boolean, onSaved: () -> Unit, onError: () -> Unit) {
+    /**
+     * Records the session. By default straight to Movies/Picasso in the MediaStore; when [outputFile]
+     * is given, to that private file instead (the caller then moves it on, e.g. after a speed-up).
+     * Audio is optional.
+     */
+    fun startRecording(
+        fileName: String,
+        withAudio: Boolean,
+        onSaved: () -> Unit,
+        onError: () -> Unit,
+        outputFile: File? = null,
+    ) {
         if (_state.value.recording) return
         val values = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, fileName)
@@ -90,13 +102,22 @@ class CameraManager @Inject constructor(
                 put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/Picasso")
             }
         }
-        val output = MediaStoreOutputOptions.Builder(
-            context.contentResolver,
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-        ).setContentValues(values).build()
         try {
-            recording = videoCapture.output
-                .prepareRecording(context, output)
+            val pending = if (outputFile != null) {
+                videoCapture.output.prepareRecording(
+                    context,
+                    FileOutputOptions.Builder(outputFile).build(),
+                )
+            } else {
+                videoCapture.output.prepareRecording(
+                    context,
+                    MediaStoreOutputOptions.Builder(
+                        context.contentResolver,
+                        MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                    ).setContentValues(values).build(),
+                )
+            }
+            recording = pending
                 .apply { if (withAudio) withAudioEnabled() }
                 .start(ContextCompat.getMainExecutor(context)) { event ->
                     when (event) {

@@ -1,5 +1,7 @@
 package app.picasso.tracer.domain.model
 
+import app.picasso.tracer.camera.RecordingSpeed
+
 /** Appearance choice for the whole app. */
 enum class ThemeMode {
     SYSTEM,
@@ -22,4 +24,6 @@ data class PicassoSettings(
     val proUnlocked: Boolean = false,
     /** Training wheels level the user last chose; null means training wheels are off. */
     val trainingLevel: HelpLevel? = null,
+    /** How much faster than real time new recordings are saved; remembered across sessions. */
+    val recordingSpeed: RecordingSpeed = RecordingSpeed.DEFAULT,
 )

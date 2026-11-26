@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import app.picasso.tracer.camera.RecordingSpeed
 import app.picasso.tracer.domain.model.HelpLevel
 import app.picasso.tracer.domain.model.PicassoSettings
 import app.picasso.tracer.domain.model.ThemeMode
@@ -39,6 +40,8 @@ class SettingsRepositoryImpl @Inject constructor(
                 accountName = prefs[Keys.ACCOUNT_NAME],
                 proUnlocked = BuildConfig.PRO_BUILD || (prefs[Keys.PRO_UNLOCKED] ?: false),
                 trainingLevel = HelpLevel.fromName(prefs[Keys.TRAINING_LEVEL]),
+                recordingSpeed = RecordingSpeed.fromName(prefs[Keys.RECORDING_SPEED])
+                    ?: RecordingSpeed.DEFAULT,
             )
         }
 
@@ -78,6 +81,10 @@ class SettingsRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun setRecordingSpeed(speed: RecordingSpeed) {
+        dataStore.edit { it[Keys.RECORDING_SPEED] = speed.name }
+    }
+
     override suspend fun setDefaultGrid(rows: Int, cols: Int) {
         dataStore.edit {
             it[Keys.DEFAULT_GRID_ROWS] = rows.coerceIn(1, 8)
@@ -95,5 +102,6 @@ class SettingsRepositoryImpl @Inject constructor(
         val ACCOUNT_NAME = stringPreferencesKey("account_name")
         val PRO_UNLOCKED = booleanPreferencesKey("pro_unlocked")
         val TRAINING_LEVEL = stringPreferencesKey("training_level")
+        val RECORDING_SPEED = stringPreferencesKey("recording_speed")
     }
 }

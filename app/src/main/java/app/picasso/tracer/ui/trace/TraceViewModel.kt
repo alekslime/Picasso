@@ -16,6 +16,8 @@ import app.picasso.tracer.camera.ArStatus
 import app.picasso.tracer.camera.ArAnchor
 import app.picasso.tracer.camera.MotionTracker
 import app.picasso.tracer.camera.OverlayMode
+import app.picasso.tracer.camera.RecordingExporter
+import app.picasso.tracer.camera.RecordingSpeed
 import app.picasso.tracer.data.ImageStore
 import app.picasso.tracer.domain.model.OverlayLayer
 import app.picasso.tracer.domain.model.OverlayTransform
@@ -91,6 +93,10 @@ data class TraceUiState(
     val timelapseActive: Boolean = false,
     val timelapseIntervalSec: Int = 10,
     val timelapseCount: Int = 0,
+    // Speed new video recordings are saved at (remembered in settings); processing is true while
+    // a finished recording is still being sped up and filed.
+    val recordingSpeed: RecordingSpeed = RecordingSpeed.DEFAULT,
+    val recordingProcessing: Boolean = false,
     val beforeAfterSaving: Boolean = false,
     val stillSaving: Boolean = false,
     val wallMode: Boolean = false,
@@ -130,6 +136,7 @@ class TraceViewModel @Inject constructor(
     private val filters: FilterProcessor,
     private val stepGenerator: StepGenerator,
     private val settings: SettingsRepository,
+    private val recordingExporter: RecordingExporter,
 ) : ViewModel() {
 
     private val projectId: Long = savedStateHandle.get<Long>("projectId") ?: -1L
@@ -178,6 +185,15 @@ class TraceViewModel @Inject constructor(
             }
         }
         startAutoSave()
+        viewModelScope.launch {
+            val speed = settings.settings.first().recordingSpeed
+            _uiState.update { it.copy(recordingSpeed = speed) }
+        }
+        viewModelScope.launch {
+            recordingExporter.pending.collect { n ->
+                _uiState.update { it.copy(recordingProcessing = n > 0) }
+            }
+        }
         viewModelScope.launch {
             repository.observeLayers(projectId).collect { layers -> onLayersChanged(layers) }
         }
@@ -843,14 +859,52 @@ class TraceViewModel @Inject constructor(
         _uiState.update { it.copy(brightness = 0f, contrast = 1f) }
     }
 
+    /** Picks the speed for the next recording. Locked while recording so one video has one speed. */
+    fun setRecordingSpeed(speed: RecordingSpeed) {
+        if (cameraManager.state.value.recording) return
+        _uiState.update { it.copy(recordingSpeed = speed) }
+        viewModelScope.launch { settings.setRecordingSpeed(speed) }
+    }
+
     fun startRecording(withAudio: Boolean) {
+        val speed = _uiState.value.recordingSpeed
+        val stamp = System.currentTimeMillis()
+        if (!speed.isSpedUp) {
+            cameraManager.startRecording(
+                fileName = "Picasso-$stamp.mp4",
+                withAudio = withAudio,
+                onSaved = {
+                    _uiState.update { it.copy(noticeRes = R.string.recording_saved) }
+                },
+                onError = {
+                    _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
+                },
+            )
+            return
+        }
+        // Timelapse: record 1x into a private file (no audio, it would be sped into noise), then
+        // the app-scoped exporter speeds it up and files it, even if this screen is left meanwhile.
+        val source = recordingExporter.newSourceFile(stamp)
+        val displayName = "Picasso-timelapse-$stamp-${speed.label}.mp4"
         cameraManager.startRecording(
-            fileName = "Picasso-${System.currentTimeMillis()}.mp4",
-            withAudio = withAudio,
+            fileName = displayName,
+            withAudio = false,
+            outputFile = source,
             onSaved = {
-                _uiState.update { it.copy(noticeRes = R.string.recording_saved) }
+                recordingExporter.export(source, speed, displayName) { outcome ->
+                    _uiState.update {
+                        it.copy(
+                            noticeRes = when (outcome) {
+                                RecordingExporter.Outcome.SPED_UP -> R.string.timelapse_video_saved
+                                RecordingExporter.Outcome.SAVED_UNCHANGED -> R.string.timelapse_video_unchanged
+                                RecordingExporter.Outcome.FAILED -> R.string.recording_failed
+                            },
+                        )
+                    }
+                }
             },
             onError = {
+                runCatching { source.delete() }
                 _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
             },
         )

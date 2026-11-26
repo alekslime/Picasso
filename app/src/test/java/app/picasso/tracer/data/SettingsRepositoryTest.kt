@@ -2,6 +2,7 @@ package app.picasso.tracer.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import app.picasso.tracer.BuildConfig
+import app.picasso.tracer.camera.RecordingSpeed
 import app.picasso.tracer.domain.model.PicassoSettings
 import app.picasso.tracer.domain.model.ThemeMode
 import kotlinx.coroutines.cancel
@@ -90,5 +91,15 @@ class SettingsRepositoryTest {
         assertEquals(app.picasso.tracer.domain.model.HelpLevel.OUTLINE, repo.settings.first().trainingLevel)
         repo.setTrainingLevel(null)
         assertEquals(null, repo.settings.first().trainingLevel)
+    }
+
+    @Test
+    fun `recording speed defaults to 32x and persists`() = runTest {
+        val repo = repository()
+        assertEquals(RecordingSpeed.X32, repo.settings.first().recordingSpeed)
+        repo.setRecordingSpeed(RecordingSpeed.X8)
+        assertEquals(RecordingSpeed.X8, repo.settings.first().recordingSpeed)
+        repo.setRecordingSpeed(RecordingSpeed.NORMAL)
+        assertEquals(RecordingSpeed.NORMAL, repo.settings.first().recordingSpeed)
     }
 }
