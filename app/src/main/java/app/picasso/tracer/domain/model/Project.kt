@@ -17,4 +17,6 @@ data class Project(
     val favorite: Boolean = false,
     /** Whether the base image is drawn in the layer stack. */
     val baseVisible: Boolean = true,
+    /** Labels for grouping projects on Home; see [Tags]. */
+    val tags: List<String> = emptyList(),
 )

@@ -10,6 +10,7 @@ import app.picasso.tracer.domain.repository.SettingsRepository
 import app.picasso.tracer.monetization.Ads
 import app.picasso.tracer.data.Samples
 import app.picasso.tracer.domain.model.Project
+import app.picasso.tracer.domain.model.Tags
 import app.picasso.tracer.domain.repository.ProjectRepository
 import app.picasso.tracer.filters.FilterProcessor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -78,23 +80,27 @@ class HomeViewModel @Inject constructor(
     private val _favoritesOnly = MutableStateFlow(false)
     val favoritesOnly: StateFlow<Boolean> = _favoritesOnly.asStateFlow()
 
-    /** Library view: filtered by search + favorites, then sorted. */
+    private val _tag = MutableStateFlow<String?>(null)
+
+    /** Every tag in use, for the filter row and the tag editor. */
+    val tags: StateFlow<List<String>> = projects
+        .map { Tags.all(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** The tag being filtered on; cleared by itself once no project carries it any more. */
+    val selectedTag: StateFlow<String?> = combine(tags, _tag) { all, tag ->
+        tag?.takeIf { selected -> all.any { it.equals(selected, ignoreCase = true) } }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Library view: filtered by favorites, tag and search, then sorted. */
     val library: StateFlow<List<Project>> = combine(
         projects,
         _query,
         _sort,
         _favoritesOnly,
-    ) { all, query, sort, favoritesOnly ->
-        var list = all
-        if (favoritesOnly) list = list.filter { it.favorite }
-        if (query.isNotBlank()) {
-            list = list.filter { it.name.contains(query, ignoreCase = true) }
-        }
-        when (sort) {
-            LibrarySort.NEWEST -> list.sortedByDescending { it.updatedAt }
-            LibrarySort.OLDEST -> list.sortedBy { it.updatedAt }
-            LibrarySort.NAME -> list.sortedBy { it.name.lowercase() }
-        }
+        selectedTag,
+    ) { all, query, sort, favoritesOnly, tag ->
+        filterLibrary(all, query, sort, favoritesOnly, tag)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _samples = MutableStateFlow<List<SampleItem>>(emptyList())
@@ -164,8 +170,26 @@ class HomeViewModel @Inject constructor(
         _sort.value = sort
     }
 
+    /** Favorites and a tag are alternatives, like the All / Favorites pills: picking one drops the other. */
     fun setFavoritesOnly(favoritesOnly: Boolean) {
         _favoritesOnly.value = favoritesOnly
+        if (favoritesOnly) _tag.value = null
+    }
+
+    /** Filters the library to [tag]; null (or the same tag again) shows everything. */
+    fun setTag(tag: String?) {
+        _tag.value = tag?.takeIf { !it.equals(_tag.value, ignoreCase = true) }
+        if (_tag.value != null) _favoritesOnly.value = false
+    }
+
+    fun setProjectTags(project: Project, tags: List<String>) {
+        viewModelScope.launch { repository.setTags(project.id, tags) }
+    }
+
+    /** Clears every filter (tag, favorites); used by the All pill. */
+    fun showAll() {
+        _tag.value = null
+        _favoritesOnly.value = false
     }
 
     /**

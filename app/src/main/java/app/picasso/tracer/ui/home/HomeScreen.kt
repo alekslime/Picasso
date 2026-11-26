@@ -6,6 +6,8 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -153,6 +155,8 @@ fun HomeScreen(
     val query by viewModel.query.collectAsState()
     val sort by viewModel.sort.collectAsState()
     val favoritesOnly by viewModel.favoritesOnly.collectAsState()
+    val tags by viewModel.tags.collectAsState()
+    val selectedTag by viewModel.selectedTag.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val haptics = LocalHapticFeedback.current
     val showAds by viewModel.showAds.collectAsState()
@@ -195,6 +199,7 @@ fun HomeScreen(
     }
 
     var renaming by remember { mutableStateOf<Project?>(null) }
+    var editingTags by remember { mutableStateOf<Project?>(null) }
 
     val pickImage = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
@@ -218,7 +223,7 @@ fun HomeScreen(
     }
 
     // Resume only makes sense outside search/favorites filtering.
-    val browsing = query.isBlank() && !favoritesOnly
+    val browsing = query.isBlank() && !favoritesOnly && selectedTag == null
     val resume = if (browsing) projects.firstOrNull() else null
 
     Scaffold(
@@ -382,13 +387,16 @@ fun HomeScreen(
                         }
                     }
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.entrance(6)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.horizontalScroll(rememberScrollState()).entrance(6),
+                        ) {
                             PicassoPill(
                                 label = stringResource(R.string.filter_all),
-                                selected = !favoritesOnly,
+                                selected = !favoritesOnly && selectedTag == null,
                                 onClick = {
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    viewModel.setFavoritesOnly(false)
+                                    viewModel.showAll()
                                 },
                                 horizontalPadding = 18.dp,
                                 verticalPadding = 8.dp,
@@ -403,6 +411,18 @@ fun HomeScreen(
                                 horizontalPadding = 18.dp,
                                 verticalPadding = 8.dp,
                             )
+                            tags.forEach { tag ->
+                                PicassoPill(
+                                    label = tag,
+                                    selected = selectedTag.equals(tag, ignoreCase = true),
+                                    onClick = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        viewModel.setTag(tag)
+                                    },
+                                    horizontalPadding = 18.dp,
+                                    verticalPadding = 8.dp,
+                                )
+                            }
                         }
                     }
                 }
@@ -421,6 +441,7 @@ fun HomeScreen(
                                 scope.launch { snackbar.showSnackbar(context.getString(R.string.share_failed)) }
                             }
                         },
+                        onTags = { editingTags = project },
                         onRename = { renaming = project },
                         onDelete = { deleteProject(project) },
                     )
@@ -436,6 +457,18 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    editingTags?.let { project ->
+        TagsDialog(
+            project = project,
+            allTags = tags,
+            onDismiss = { editingTags = null },
+            onSave = { chosen ->
+                editingTags = null
+                viewModel.setProjectTags(project, chosen)
+            },
+        )
     }
 
     renaming?.let { project ->
@@ -722,6 +755,7 @@ private fun ProjectCard(
     onOpen: () -> Unit,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
+    onTags: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -771,6 +805,15 @@ private fun ProjectCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (project.tags.isNotEmpty()) {
+                        Text(
+                            project.tags.joinToString(" · "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = picassoAccentText(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 FavoriteStar(favorite = project.favorite, onClick = onToggleFavorite)
                 Box {
@@ -781,6 +824,10 @@ private fun ProjectCard(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.share_image)) },
                             onClick = { menuExpanded = false; onShare() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.tags)) },
+                            onClick = { menuExpanded = false; onTags() },
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.rename)) },

@@ -6,6 +6,7 @@ import app.picasso.tracer.data.local.ProjectEntity
 import app.picasso.tracer.domain.model.OverlayLayer
 import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
+import app.picasso.tracer.domain.model.Tags
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.domain.model.GuideType
 import app.picasso.tracer.domain.repository.ProjectRepository
@@ -51,6 +52,10 @@ class ProjectRepositoryImpl @Inject constructor(
 
     override suspend fun setFavorite(id: Long, favorite: Boolean) {
         dao.getById(id)?.copy(favorite = favorite)?.let { dao.upsert(it) }
+    }
+
+    override suspend fun setTags(id: Long, tags: List<String>) {
+        dao.getById(id)?.copy(tags = Tags.encode(tags))?.let { dao.upsert(it) }
     }
 
     override suspend fun deleteProject(id: Long) {
@@ -164,6 +169,7 @@ fun ProjectEntity.toDomain(): Project = Project(
     guideType = runCatching { GuideType.valueOf(guideType) }.getOrDefault(GuideType.GRID),
     favorite = favorite,
     baseVisible = baseVisible,
+    tags = Tags.decode(tags),
 )
 
 fun Project.toEntity(updatedAt: Long): ProjectEntity = ProjectEntity(
@@ -186,4 +192,5 @@ fun Project.toEntity(updatedAt: Long): ProjectEntity = ProjectEntity(
     guideType = guideType.name,
     favorite = favorite,
     baseVisible = baseVisible,
+    tags = Tags.encode(tags),
 )

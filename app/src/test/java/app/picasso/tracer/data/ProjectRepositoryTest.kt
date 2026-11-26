@@ -427,4 +427,48 @@ class ProjectRepositoryTest {
         assertEquals(4f, one.transform.offsetX, 0.001f)
         assertEquals(TraceFilter.GRAYSCALE, one.filter)
     }
+
+    @Test
+    fun `tags default to none and persist cleaned`() = runTest {
+        val repo = repository()
+        val id = repo.createProject("/img/a.jpg", "A")
+        assertEquals(emptyList<String>(), repo.getProject(id)!!.tags)
+
+        repo.setTags(id, listOf("  Faces ", "faces", "Hands", ""))
+
+        assertEquals(listOf("Faces", "Hands"), repo.getProject(id)!!.tags)
+    }
+
+    @Test
+    fun `setTags keeps the list order by not touching updatedAt`() = runTest {
+        val repo = repository()
+        val id = repo.createProject("/img/a.jpg", "A")
+        val before = repo.getProject(id)!!.updatedAt
+
+        repo.setTags(id, listOf("WIP"))
+
+        assertEquals(before, repo.getProject(id)!!.updatedAt)
+    }
+
+    @Test
+    fun `setTags with an empty list clears them`() = runTest {
+        val repo = repository()
+        val id = repo.createProject("/img/a.jpg", "A")
+        repo.setTags(id, listOf("WIP"))
+
+        repo.setTags(id, emptyList())
+
+        assertEquals(emptyList<String>(), repo.getProject(id)!!.tags)
+    }
+
+    @Test
+    fun `updateProject keeps the tags it was given`() = runTest {
+        val repo = repository()
+        val id = repo.createProject("/img/a.jpg", "A")
+        repo.setTags(id, listOf("WIP"))
+
+        repo.updateProject(repo.getProject(id)!!.copy(name = "Renamed"))
+
+        assertEquals(listOf("WIP"), repo.getProject(id)!!.tags)
+    }
 }

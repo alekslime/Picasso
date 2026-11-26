@@ -146,6 +146,12 @@
     <string name="saved_image">Image saved to gallery</string>
     <string name="recording_failed">Recording failed</string>
     <string name="share">Share</string>
+    <string name="tags">Tags</string>
+    <string name="tags_title">Tags for %1$s</string>
+    <string name="tags_empty">No tags yet. Add one below to group your projects.</string>
+    <string name="tags_limit">Up to %1$d tags per project</string>
+    <string name="tag_new_hint">New tag</string>
+    <string name="tag_add">Add tag</string>
     <string name="share_image">Share image</string>
     <string name="share_chooser_title">Share via</string>
     <string name="share_failed">Couldn\'t share this</string>

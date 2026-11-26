@@ -24,4 +24,6 @@ data class ProjectEntity(
     val guideType: String = "GRID",
     val favorite: Boolean = false,
     val baseVisible: Boolean = true,
+    /** Tags, one per line; see Tags.encode. */
+    val tags: String = "",
 )

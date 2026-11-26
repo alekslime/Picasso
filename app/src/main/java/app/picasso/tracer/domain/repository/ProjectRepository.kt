@@ -19,6 +19,9 @@ interface ProjectRepository {
     /** Flips the favorite flag without touching updatedAt, so list order is kept. */
     suspend fun setFavorite(id: Long, favorite: Boolean)
 
+    /** Replaces a project's tags (cleaned up first) without touching updatedAt, so list order is kept. */
+    suspend fun setTags(id: Long, tags: List<String>)
+
     suspend fun deleteProject(id: Long)
 
     fun observeLayers(projectId: Long): Flow<List<OverlayLayer>>

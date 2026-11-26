@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [ProjectEntity::class, LayerEntity::class], version = 8, exportSchema = false)
+@Database(entities = [ProjectEntity::class, LayerEntity::class], version = 9, exportSchema = false)
 abstract class PicassoDatabase : RoomDatabase() {
     abstract fun projectDao(): ProjectDao
 
@@ -103,6 +103,17 @@ abstract class PicassoDatabase : RoomDatabase() {
             }
         }
 
+        /** Projects can carry tags (stored one per line); existing projects have none. */
+        val MIGRATION_8_9_SQL = listOf(
+            "ALTER TABLE projects ADD COLUMN tags TEXT NOT NULL DEFAULT ''",
+        )
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                MIGRATION_8_9_SQL.forEach { db.execSQL(it) }
+            }
+        }
+
         /** Every migration, in order; both database builders use this so none is forgotten. */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_1_2,
@@ -112,6 +123,7 @@ abstract class PicassoDatabase : RoomDatabase() {
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
+            MIGRATION_8_9,
         )
     }
 }
