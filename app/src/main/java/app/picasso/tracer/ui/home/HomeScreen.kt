@@ -86,6 +86,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import app.picasso.tracer.ui.common.shareImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.picasso.tracer.R
 import app.picasso.tracer.domain.model.Project
@@ -388,6 +389,11 @@ fun HomeScreen(
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         viewModel.toggleFavorite(project)
                     },
+                    onShare = {
+                        if (!shareImage(context, File(project.imagePath))) {
+                            scope.launch { snackbar.showSnackbar(context.getString(R.string.share_failed)) }
+                        }
+                    },
                     onRename = { renaming = project },
                     onDelete = { deleteProject(project) },
                 )
@@ -687,6 +693,7 @@ private fun ProjectCard(
     project: Project,
     onOpen: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onShare: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -743,6 +750,10 @@ private fun ProjectCard(
                         Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.project_options))
                     }
                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.share_image)) },
+                            onClick = { menuExpanded = false; onShare() },
+                        )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.rename)) },
                             onClick = { menuExpanded = false; onRename() },

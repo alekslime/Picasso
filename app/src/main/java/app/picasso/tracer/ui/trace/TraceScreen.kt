@@ -53,8 +53,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import app.picasso.tracer.ui.common.shareVideo
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -200,7 +203,22 @@ fun TraceScreen(
             ) {
                 successTick++
             }
-            snackbar.showSnackbar(context.getString(noticeRes))
+            // A saved video's snackbar offers Share, so a timelapse goes straight to chat or social.
+            val savedVideo = state.savedVideo.takeIf {
+                noticeRes == R.string.recording_saved ||
+                    noticeRes == R.string.timelapse_video_saved ||
+                    noticeRes == R.string.timelapse_video_unchanged
+            }
+            val result = snackbar.showSnackbar(
+                message = context.getString(noticeRes),
+                actionLabel = savedVideo?.let { context.getString(R.string.share) },
+                duration = if (savedVideo != null) SnackbarDuration.Long else SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed && savedVideo != null) {
+                if (!shareVideo(context, savedVideo)) {
+                    snackbar.showSnackbar(context.getString(R.string.share_failed))
+                }
+            }
             viewModel.clearNotice()
         }
     }

@@ -141,6 +141,10 @@
     <string name="save_image">Save image</string>
     <string name="saved_image">Image saved to gallery</string>
     <string name="recording_failed">Recording failed</string>
+    <string name="share">Share</string>
+    <string name="share_image">Share image</string>
+    <string name="share_chooser_title">Share via</string>
+    <string name="share_failed">Couldn\'t share this</string>
     <string name="recording_speed">Playback speed</string>
     <string name="recording_speed_hint">Faster than 1x saves a timelapse without sound.</string>
     <string name="timelapse_video_saved">Timelapse saved to gallery</string>

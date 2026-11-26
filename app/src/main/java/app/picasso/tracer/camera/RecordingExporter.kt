@@ -77,23 +77,23 @@ class RecordingExporter @Inject constructor(
      * Speeds [source] up by [speed] and saves it as [displayName]. [source] is deleted
      * afterwards. [onDone] runs on the main thread.
      */
-    fun export(source: File, speed: RecordingSpeed, displayName: String, onDone: (Outcome) -> Unit) {
+    fun export(source: File, speed: RecordingSpeed, displayName: String, onDone: (Outcome, Uri?) -> Unit) {
         _pending.update { it + 1 }
         scope.launch {
-            val outcome = try {
+            val (outcome, uri) = try {
                 mutex.withLock { process(source, speed, displayName) }
             } catch (_: Exception) {
-                Outcome.FAILED
+                Outcome.FAILED to null
             } finally {
                 runCatching { source.delete() }
                 _pending.update { it - 1 }
             }
-            onDone(outcome)
+            onDone(outcome, uri)
         }
     }
 
-    private suspend fun process(source: File, speed: RecordingSpeed, displayName: String): Outcome {
-        if (!source.exists() || source.length() == 0L) return Outcome.FAILED
+    private suspend fun process(source: File, speed: RecordingSpeed, displayName: String): Pair<Outcome, Uri?> {
+        if (!source.exists() || source.length() == 0L) return Outcome.FAILED to null
         val sped = File(workDir, "sped-${System.currentTimeMillis()}.mp4")
         val spedUp = try {
             speedUp(source, sped, speed)
@@ -105,9 +105,9 @@ class RecordingExporter @Inject constructor(
         val saved = withContext(Dispatchers.IO) { saveToMovies(toSave, displayName) }
         runCatching { sped.delete() }
         return when {
-            !saved -> Outcome.FAILED
-            spedUp -> Outcome.SPED_UP
-            else -> Outcome.SAVED_UNCHANGED
+            saved == null -> Outcome.FAILED to null
+            spedUp -> Outcome.SPED_UP to saved
+            else -> Outcome.SAVED_UNCHANGED to saved
         }
     }
 
@@ -148,8 +148,8 @@ class RecordingExporter @Inject constructor(
         }
     }
 
-    /** Copies [file] into Movies/Picasso via MediaStore; false (and no half-written entry) on failure. */
-    private fun saveToMovies(file: File, displayName: String): Boolean {
+    /** Copies [file] into Movies/Picasso via MediaStore; null (and no half-written entry) on failure. */
+    private fun saveToMovies(file: File, displayName: String): Uri? {
         val resolver = context.contentResolver
         val values = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
@@ -161,7 +161,7 @@ class RecordingExporter @Inject constructor(
         }
         val uri = runCatching {
             resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)
-        }.getOrNull() ?: return false
+        }.getOrNull() ?: return null
         return try {
             val out = resolver.openOutputStream(uri) ?: error("no output stream")
             out.use { sink -> file.inputStream().use { it.copyTo(sink) } }
@@ -169,10 +169,10 @@ class RecordingExporter @Inject constructor(
                 val done = ContentValues().apply { put(MediaStore.Video.Media.IS_PENDING, 0) }
                 resolver.update(uri, done, null, null)
             }
-            true
+            uri
         } catch (_: Exception) {
             runCatching { resolver.delete(uri, null, null) }
-            false
+            null
         }
     }
 }

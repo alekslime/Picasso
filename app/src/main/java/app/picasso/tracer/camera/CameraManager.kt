@@ -2,6 +2,7 @@ package app.picasso.tracer.camera
 
 import android.content.ContentValues
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import androidx.camera.core.Camera
@@ -90,7 +91,7 @@ class CameraManager @Inject constructor(
     fun startRecording(
         fileName: String,
         withAudio: Boolean,
-        onSaved: () -> Unit,
+        onSaved: (Uri) -> Unit,
         onError: () -> Unit,
         outputFile: File? = null,
     ) {
@@ -124,7 +125,7 @@ class CameraManager @Inject constructor(
                         is VideoRecordEvent.Finalize -> {
                             _state.update { it.copy(recording = false) }
                             recording = null
-                            if (!event.hasError()) onSaved() else onError()
+                            if (!event.hasError()) onSaved(event.outputResults.outputUri) else onError()
                         }
                     }
                 }

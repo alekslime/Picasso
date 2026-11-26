@@ -97,6 +97,8 @@ data class TraceUiState(
     // a finished recording is still being sped up and filed.
     val recordingSpeed: RecordingSpeed = RecordingSpeed.DEFAULT,
     val recordingProcessing: Boolean = false,
+    // Where the last finished recording was saved, so its "saved" snackbar can offer Share.
+    val savedVideo: android.net.Uri? = null,
     val beforeAfterSaving: Boolean = false,
     val stillSaving: Boolean = false,
     val wallMode: Boolean = false,
@@ -873,8 +875,8 @@ class TraceViewModel @Inject constructor(
             cameraManager.startRecording(
                 fileName = "Picasso-$stamp.mp4",
                 withAudio = withAudio,
-                onSaved = {
-                    _uiState.update { it.copy(noticeRes = R.string.recording_saved) }
+                onSaved = { uri ->
+                    _uiState.update { it.copy(noticeRes = R.string.recording_saved, savedVideo = uri) }
                 },
                 onError = {
                     _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
@@ -891,9 +893,10 @@ class TraceViewModel @Inject constructor(
             withAudio = false,
             outputFile = source,
             onSaved = {
-                recordingExporter.export(source, speed, displayName) { outcome ->
+                recordingExporter.export(source, speed, displayName) { outcome, uri ->
                     _uiState.update {
                         it.copy(
+                            savedVideo = uri ?: it.savedVideo,
                             noticeRes = when (outcome) {
                                 RecordingExporter.Outcome.SPED_UP -> R.string.timelapse_video_saved
                                 RecordingExporter.Outcome.SAVED_UNCHANGED -> R.string.timelapse_video_unchanged
