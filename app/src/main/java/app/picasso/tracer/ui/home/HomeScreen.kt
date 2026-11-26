@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -84,6 +86,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import app.picasso.tracer.ui.common.shareImage
@@ -239,171 +242,196 @@ fun HomeScreen(
             }
         },
     ) { padding ->
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                HomeHeader(onOpenSettings = onOpenSettings)
-            }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Box(Modifier.fillMaxWidth().entrance(0)) {
-                    NewTracingRow(
-                        creating = creating,
-                        onPick = {
-                            pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        },
-                        onCapture = {
-                            val file = File(
-                                File(context.cacheDir, "images").apply { mkdirs() },
-                                "capture-${System.currentTimeMillis()}.jpg",
-                            )
-                            val uri = FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.fileprovider",
-                                file,
-                            )
-                            photoUri = uri
-                            takePhoto.launch(uri)
-                        },
-                    )
-                }
-            }
-            if (creating) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-            }
-            resume?.let { project ->
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    ResumeCard(project = project, onOpen = { onOpenProject(project.id) }, modifier = Modifier.entrance(1))
-                }
-            }
-            if (samples.isNotEmpty()) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    PicassoSectionHeader(
-                        title = stringResource(R.string.try_sample),
-                        prominent = true,
-                        modifier = Modifier.padding(top = 12.dp).entrance(2),
-                    )
-                }
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.entrance(3)) {
-                        itemsIndexed(samples) { index, item ->
-                            SampleCard(
-                                item = item,
-                                tint = SampleTints[index % SampleTints.size],
-                                enabled = !creating,
-                                onSelect = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    viewModel.createSample(
-                                        item.sample,
-                                        context.getString(item.sample.nameRes),
-                                        onOpenProject,
-                                    )
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                PicassoSectionHeader(
-                    title = stringResource(R.string.library),
-                    prominent = true,
-                    count = library.size.takeIf { library.isNotEmpty() },
-                    modifier = Modifier.padding(top = 12.dp).entrance(4),
+            val columns = homeGridColumns(minOf(maxWidth, HomeMaxContentWidth).value)
+            val wide = isWideHome(columns)
+            val newTracing: @Composable () -> Unit = {
+                NewTracingRow(
+                    creating = creating,
+                    onPick = {
+                        pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    onCapture = {
+                        val file = File(
+                            File(context.cacheDir, "images").apply { mkdirs() },
+                            "capture-${System.currentTimeMillis()}.jpg",
+                        )
+                        val uri = FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file,
+                        )
+                        photoUri = uri
+                        takePhoto.launch(uri)
+                    },
                 )
             }
-            if (projects.isNotEmpty()) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columns),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .widthIn(max = HomeMaxContentWidth)
+                    .fillMaxSize(),
+            ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.entrance(5),
-                    ) {
-                        OutlinedTextField(
-                            value = query,
-                            onValueChange = viewModel::setQuery,
-                            placeholder = { Text(stringResource(R.string.search_projects)) },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                            trailingIcon = {
-                                if (query.isNotEmpty()) {
-                                    IconButton(onClick = { viewModel.setQuery("") }) {
-                                        Icon(Icons.Default.Clear, contentDescription = null)
+                    HomeHeader(onOpenSettings = onOpenSettings, height = homeHeaderHeightDp(maxHeight.value).dp)
+                }
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(Modifier.fillMaxWidth().entrance(0)) {
+                        if (wide) {
+                            // Big screens: start a tracing and pick up the last one side by side.
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(Modifier.weight(1f)) { newTracing() }
+                                resume?.let { project ->
+                                    Box(Modifier.weight(1f)) {
+                                        ResumeCard(project = project, onOpen = { onOpenProject(project.id) })
                                     }
                                 }
-                            },
-                            singleLine = true,
-                            shape = CircleShape,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            ),
-                            modifier = Modifier.weight(1f),
-                        )
-                        SortMenu(sort = sort, onSort = viewModel::setSort)
-                    }
-                }
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.entrance(6)) {
-                        PicassoPill(
-                            label = stringResource(R.string.filter_all),
-                            selected = !favoritesOnly,
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                viewModel.setFavoritesOnly(false)
-                            },
-                            horizontalPadding = 18.dp,
-                            verticalPadding = 8.dp,
-                        )
-                        PicassoPill(
-                            label = stringResource(R.string.filter_favorites),
-                            selected = favoritesOnly,
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                viewModel.setFavoritesOnly(true)
-                            },
-                            horizontalPadding = 18.dp,
-                            verticalPadding = 8.dp,
-                        )
-                    }
-                }
-            }
-            itemsIndexed(library, key = { _, p -> p.id }) { index, project ->
-                ProjectCard(
-                    // Cards glide to their new slot on delete, sort and filter. Fade-in is off because entrance() does it.
-                    modifier = Modifier.animateItem(fadeInSpec = null).entrance(7 + index),
-                    project = project,
-                    onOpen = { onOpenProject(project.id) },
-                    onToggleFavorite = {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.toggleFavorite(project)
-                    },
-                    onShare = {
-                        if (!shareImage(context, File(project.imagePath))) {
-                            scope.launch { snackbar.showSnackbar(context.getString(R.string.share_failed)) }
+                            }
+                        } else {
+                            newTracing()
                         }
-                    },
-                    onRename = { renaming = project },
-                    onDelete = { deleteProject(project) },
-                )
-            }
-            if (library.isEmpty()) {
+                    }
+                }
+                if (creating) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+                resume?.takeIf { !wide }?.let { project ->
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        ResumeCard(project = project, onOpen = { onOpenProject(project.id) }, modifier = Modifier.entrance(1))
+                    }
+                }
+                if (samples.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        PicassoSectionHeader(
+                            title = stringResource(R.string.try_sample),
+                            prominent = true,
+                            modifier = Modifier.padding(top = 12.dp).entrance(2),
+                        )
+                    }
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.entrance(3)) {
+                            itemsIndexed(samples) { index, item ->
+                                SampleCard(
+                                    item = item,
+                                    tint = SampleTints[index % SampleTints.size],
+                                    enabled = !creating,
+                                    onSelect = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        viewModel.createSample(
+                                            item.sample,
+                                            context.getString(item.sample.nameRes),
+                                            onOpenProject,
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    when {
-                        projects.isEmpty() -> EmptyProjects()
-                        favoritesOnly -> EmptyHint(stringResource(R.string.no_favorites))
-                        else -> EmptyHint(stringResource(R.string.no_matches))
+                    PicassoSectionHeader(
+                        title = stringResource(R.string.library),
+                        prominent = true,
+                        count = library.size.takeIf { library.isNotEmpty() },
+                        modifier = Modifier.padding(top = 12.dp).entrance(4),
+                    )
+                }
+                if (projects.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.entrance(5),
+                        ) {
+                            OutlinedTextField(
+                                value = query,
+                                onValueChange = viewModel::setQuery,
+                                placeholder = { Text(stringResource(R.string.search_projects)) },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                trailingIcon = {
+                                    if (query.isNotEmpty()) {
+                                        IconButton(onClick = { viewModel.setQuery("") }) {
+                                            Icon(Icons.Default.Clear, contentDescription = null)
+                                        }
+                                    }
+                                },
+                                singleLine = true,
+                                shape = CircleShape,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                ),
+                                modifier = Modifier.weight(1f),
+                            )
+                            SortMenu(sort = sort, onSort = viewModel::setSort)
+                        }
+                    }
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.entrance(6)) {
+                            PicassoPill(
+                                label = stringResource(R.string.filter_all),
+                                selected = !favoritesOnly,
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.setFavoritesOnly(false)
+                                },
+                                horizontalPadding = 18.dp,
+                                verticalPadding = 8.dp,
+                            )
+                            PicassoPill(
+                                label = stringResource(R.string.filter_favorites),
+                                selected = favoritesOnly,
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.setFavoritesOnly(true)
+                                },
+                                horizontalPadding = 18.dp,
+                                verticalPadding = 8.dp,
+                            )
+                        }
+                    }
+                }
+                itemsIndexed(library, key = { _, p -> p.id }) { index, project ->
+                    ProjectCard(
+                        // Cards glide to their new slot on delete, sort and filter. Fade-in is off because entrance() does it.
+                        modifier = Modifier.animateItem(fadeInSpec = null).entrance(7 + index),
+                        project = project,
+                        onOpen = { onOpenProject(project.id) },
+                        onToggleFavorite = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.toggleFavorite(project)
+                        },
+                        onShare = {
+                            if (!shareImage(context, File(project.imagePath))) {
+                                scope.launch { snackbar.showSnackbar(context.getString(R.string.share_failed)) }
+                            }
+                        },
+                        onRename = { renaming = project },
+                        onDelete = { deleteProject(project) },
+                    )
+                }
+                if (library.isEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        when {
+                            projects.isEmpty() -> EmptyProjects()
+                            favoritesOnly -> EmptyHint(stringResource(R.string.no_favorites))
+                            else -> EmptyHint(stringResource(R.string.no_matches))
+                        }
                     }
                 }
             }
@@ -424,8 +452,8 @@ fun HomeScreen(
 
 /** Big in-page header from the new design: large title, tagline and a round settings button. */
 @Composable
-private fun HomeHeader(onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxWidth().height(128.dp)) {
+private fun HomeHeader(onOpenSettings: () -> Unit, height: Dp = 128.dp, modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxWidth().height(height)) {
         BrushStroke(Modifier.align(Alignment.BottomEnd).size(width = 120.dp, height = 84.dp))
         Column(modifier = Modifier.align(Alignment.CenterStart)) {
             Text(

@@ -489,7 +489,7 @@ fun TraceScreen(
                         .padding(8.dp),
                 ) {
                     cameraCard(Modifier.weight(1f).fillMaxHeight())
-                    controlsPanel(Modifier.width(320.dp).align(Alignment.CenterVertically))
+                    controlsPanel(Modifier.width(if (maxWidth >= 840.dp) 380.dp else 320.dp).align(Alignment.CenterVertically))
                 }
             } else {
                 Column(
@@ -501,7 +501,8 @@ fun TraceScreen(
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                 ) {
                     cameraCard(Modifier.weight(1f).fillMaxWidth())
-                    controlsPanel(Modifier.fillMaxWidth())
+                    // The dock is a thumb-sized strip: on a tablet it stays that size, centred, instead of stretching.
+                    controlsPanel(Modifier.align(Alignment.CenterHorizontally).widthIn(max = 560.dp).fillMaxWidth())
                 }
             }
 
