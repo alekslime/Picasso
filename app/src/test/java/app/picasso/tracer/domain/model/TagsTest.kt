@@ -24,7 +24,7 @@ class TagsTest {
 
     @Test
     fun `clean drops duplicates ignoring case and keeps the first spelling`() {
-        assertEquals(listOf("Faces", "Hands"), Tags.clean(listOf("Faces", "faces", " HANDS ", "hands", "FACES")))
+        assertEquals(listOf("Faces", "HANDS"), Tags.clean(listOf("Faces", "faces", " HANDS ", "hands", "FACES")))
     }
 
     @Test

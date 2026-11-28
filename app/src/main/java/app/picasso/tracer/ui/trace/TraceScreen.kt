@@ -261,7 +261,8 @@ fun TraceScreen(
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val landscape = maxWidth > maxHeight
+        val screenMaxWidth = maxWidth
+        val landscape = screenMaxWidth > maxHeight
         Box(modifier = Modifier.fillMaxSize().background(PicassoBlack)) {
             // Camera card takes all the room; a slim dock sits beneath it (landscape: beside it)
             // and the full settings open on demand in a bottom sheet.
@@ -508,7 +509,7 @@ fun TraceScreen(
                         .padding(8.dp),
                 ) {
                     cameraCard(Modifier.weight(1f).fillMaxHeight())
-                    controlsPanel(Modifier.width(if (maxWidth >= 840.dp) 380.dp else 320.dp).align(Alignment.CenterVertically))
+                    controlsPanel(Modifier.width(if (screenMaxWidth >= 840.dp) 380.dp else 320.dp).align(Alignment.CenterVertically))
                 }
             } else {
                 Column(
