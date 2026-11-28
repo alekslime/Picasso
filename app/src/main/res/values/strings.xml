@@ -69,6 +69,9 @@
     <string name="new_project_defaults">New tracing defaults</string>
     <string name="default_opacity">Overlay opacity</string>
     <string name="settings_about">Camera stays on this device. No photos are taken without you asking.</string>
+    <string name="crash_report_available">A crash report from an earlier session is saved on this device.</string>
+    <string name="crash_report_share">Share crash log</string>
+    <string name="crash_report_clear">Clear</string>
     <string name="account">Account</string>
     <string name="sign_in_google">Sign in with Google</string>
     <string name="sign_out">Sign out</string>

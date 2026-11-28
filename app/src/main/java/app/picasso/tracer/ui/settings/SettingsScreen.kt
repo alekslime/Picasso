@@ -47,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.picasso.tracer.R
+import app.picasso.tracer.data.CrashLogger
 import app.picasso.tracer.domain.model.ThemeMode
 import app.picasso.tracer.ui.common.PicassoPill
 import app.picasso.tracer.ui.common.PicassoSectionHeader
@@ -185,6 +186,8 @@ fun SettingsScreen(
             }
             Spacer(Modifier.height(28.dp))
             // About card from the Figma Settings frame.
+            val crashLogger = remember(context) { CrashLogger.forContext(context) }
+            var hasCrashReport by remember { mutableStateOf(crashLogger.hasReport()) }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -198,6 +201,27 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (hasCrashReport) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        stringResource(R.string.crash_report_available),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = {
+                            crashLogger.readReport()?.let { CrashLogger.shareReport(context, it) }
+                        }) {
+                            Text(stringResource(R.string.crash_report_share))
+                        }
+                        TextButton(onClick = {
+                            crashLogger.clear()
+                            hasCrashReport = false
+                        }) {
+                            Text(stringResource(R.string.crash_report_clear))
+                        }
+                    }
+                }
             }
             AdBanner(
                 visible = adsReady && !settings.proUnlocked,
