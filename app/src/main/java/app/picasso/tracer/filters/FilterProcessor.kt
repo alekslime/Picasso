@@ -1,5 +1,6 @@
 package app.picasso.tracer.filters
 
+import android.content.ComponentCallbacks2
 import android.graphics.Bitmap
 import android.util.LruCache
 import app.picasso.tracer.domain.model.TraceFilter
@@ -11,11 +12,18 @@ import javax.inject.Singleton
 /**
  * Runs CPU filters off the main thread and caches results per image+filter.
  * Bitmaps are produced at [WORKER_DIMENSION] px; the overlay upscales them on the GPU.
+ * Cache capacity is bounded in kilobytes and trimmed on system memory pressure.
  */
 @Singleton
 class FilterProcessor @Inject constructor() {
 
-    private val cache = LruCache<String, Bitmap>(CACHE_ENTRIES)
+    private val maxCacheKb: Int =
+        (Runtime.getRuntime().maxMemory() / 1024L / 8L).toInt().coerceIn(MIN_CACHE_KB, MAX_CACHE_KB)
+
+    private val cache = object : LruCache<String, Bitmap>(maxCacheKb) {
+        override fun sizeOf(key: String, value: Bitmap): Int =
+            (value.allocationByteCount / 1024).coerceAtLeast(1)
+    }
 
     suspend fun filtered(imagePath: String, source: Bitmap, filter: TraceFilter): Bitmap =
         withContext(Dispatchers.Default) {
@@ -31,9 +39,20 @@ class FilterProcessor @Inject constructor() {
     fun get(key: String): Bitmap? = cache.get(key)
 
     fun evict(imagePath: String) {
-        // LruCache has no prefix removal; drop everything for this image by key scan.
         for (filter in TraceFilter.entries) {
             cache.remove("$imagePath|${filter.name}")
+        }
+        for (index in 0 until StepGenerator.COUNT) {
+            cache.remove("step|$imagePath|$index")
+        }
+    }
+
+    /** Responds to OS memory pressure by trimming or clearing cached bitmaps. */
+    @Suppress("DEPRECATION")
+    fun onTrimMemory(level: Int) {
+        when {
+            level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE -> cache.evictAll()
+            level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> cache.trimToSize(maxCacheKb / 2)
         }
     }
 
@@ -51,6 +70,7 @@ class FilterProcessor @Inject constructor() {
 
     companion object {
         const val WORKER_DIMENSION = 1024
-        private const val CACHE_ENTRIES = 8
+        private const val MIN_CACHE_KB = 8 * 1024   // 8 MB
+        private const val MAX_CACHE_KB = 32 * 1024  // 32 MB
     }
 }
