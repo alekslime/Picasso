@@ -1,40 +1,39 @@
 package app.picasso.tracer.ui.trace
 
+import android.app.Activity
 import android.graphics.Bitmap
+import android.graphics.SurfaceTexture
+import android.net.Uri
 import androidx.compose.ui.geometry.Offset
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.picasso.tracer.R
-import app.picasso.tracer.camera.CameraManager
-import android.app.Activity
-import android.graphics.SurfaceTexture
 import app.picasso.tracer.camera.AnchorDrift
 import app.picasso.tracer.camera.ArCoreAnchorSource
 import app.picasso.tracer.camera.ArEngine
 import app.picasso.tracer.camera.ArStatus
-import app.picasso.tracer.camera.ArAnchor
+import app.picasso.tracer.camera.CameraManager
 import app.picasso.tracer.camera.MotionTracker
 import app.picasso.tracer.camera.OverlayMode
 import app.picasso.tracer.camera.RecordingExporter
 import app.picasso.tracer.camera.RecordingSpeed
 import app.picasso.tracer.data.ImageStore
-import app.picasso.tracer.domain.model.LayerOrder
+import app.picasso.tracer.domain.model.GuideType
+import app.picasso.tracer.domain.model.HelpLevel
 import app.picasso.tracer.domain.model.OverlayLayer
 import app.picasso.tracer.domain.model.OverlayTransform
 import app.picasso.tracer.domain.model.Project
-import app.picasso.tracer.domain.model.GuideType
-import app.picasso.tracer.domain.model.HelpLevel
 import app.picasso.tracer.domain.model.TraceFilter
 import app.picasso.tracer.domain.repository.ProjectRepository
 import app.picasso.tracer.domain.repository.SettingsRepository
-import app.picasso.tracer.filters.BeforeAfter
 import app.picasso.tracer.filters.FilterProcessor
 import app.picasso.tracer.filters.GpuFilters
 import app.picasso.tracer.filters.StepGenerator
+import app.picasso.tracer.filters.StepLayer
 import app.picasso.tracer.monetization.ProBilling
 import app.picasso.tracer.monetization.ProEvent
-import app.picasso.tracer.filters.StepLayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -43,14 +42,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.coroutines.resume
 import javax.inject.Inject
 
 data class TraceUiState(
@@ -99,7 +97,7 @@ data class TraceUiState(
     val recordingSpeed: RecordingSpeed = RecordingSpeed.DEFAULT,
     val recordingProcessing: Boolean = false,
     // Where the last finished recording was saved, so its "saved" snackbar can offer Share.
-    val savedVideo: android.net.Uri? = null,
+    val savedVideo: Uri? = null,
     val beforeAfterSaving: Boolean = false,
     val stillSaving: Boolean = false,
     val wallMode: Boolean = false,
@@ -165,14 +163,14 @@ class TraceViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: ProjectRepository,
     val cameraManager: CameraManager,
-    private val motionTracker: MotionTracker,
+    motionTracker: MotionTracker,
     private val arCore: ArCoreAnchorSource,
     private val proBilling: ProBilling,
     private val imageStore: ImageStore,
     private val filters: FilterProcessor,
     private val stepGenerator: StepGenerator,
     private val settings: SettingsRepository,
-    private val recordingExporter: RecordingExporter,
+    recordingExporter: RecordingExporter,
 ) : ViewModel() {
 
     private val projectId: Long = savedStateHandle.get<Long>("projectId") ?: -1L
@@ -183,17 +181,40 @@ class TraceViewModel @Inject constructor(
     private var filterJob: Job? = null
     private var strobeJob: Job? = null
     private var stepsJob: Job? = null
-    private var stackJob: Job? = null
-    private var tickerJob: Job? = null
-    private val arAnchor = ArAnchor()
-    private var timelapseJob: Job? = null
+
+    private val arController = ArAnchorController(
+        scope = viewModelScope,
+        uiState = _uiState,
+        cameraManager = cameraManager,
+        motionTracker = motionTracker,
+        arCore = arCore,
+        proBilling = proBilling,
+    )
+
+    private val captureController = CaptureController(
+        scope = viewModelScope,
+        uiState = _uiState,
+        cameraManager = cameraManager,
+        arCore = arCore,
+        imageStore = imageStore,
+        settings = settings,
+        recordingExporter = recordingExporter,
+    )
+
+    private val layerController = LayerController(
+        projectId = projectId,
+        scope = viewModelScope,
+        uiState = _uiState,
+        repository = repository,
+        imageStore = imageStore,
+        filters = filters,
+        onSwitchImage = ::showImage,
+    )
 
     val cameraState = cameraManager.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), cameraManager.state.value)
 
-    // Separate from uiState on purpose: ticking every second must not trip auto-save.
-    private val _recordingElapsedSec = MutableStateFlow(0L)
-    val recordingElapsedSec: StateFlow<Long> = _recordingElapsedSec.asStateFlow()
+    val recordingElapsedSec: StateFlow<Long> = captureController.recordingElapsedSec
 
     init {
         viewModelScope.launch {
@@ -218,57 +239,15 @@ class TraceViewModel @Inject constructor(
                     _uiState.update { it.copy(showTutorial = true, tutorialStep = 0) }
                 }
                 if (project.filter.needsBitmap()) applyBitmapFilter(project)
-                refreshStackBitmaps()
+                layerController.refreshStackBitmaps()
                 settings.settings.first().trainingLevel?.let { applyTrainingLevel(it, persist = false) }
             }
         }
         startAutoSave()
-        viewModelScope.launch {
-            val speed = settings.settings.first().recordingSpeed
-            _uiState.update { it.copy(recordingSpeed = speed) }
-        }
-        viewModelScope.launch {
-            recordingExporter.pending.collect { n ->
-                _uiState.update { it.copy(recordingProcessing = n > 0) }
-            }
-        }
-        viewModelScope.launch {
-            repository.observeLayers(projectId).collect { layers -> onLayersChanged(layers) }
-        }
-        viewModelScope.launch {
-            arCore.drift.collect { drift ->
-                arAnchor.update(drift)
-                _uiState.update { it.copy(anchorDrift = drift) }
-            }
-        }
-        viewModelScope.launch {
-            arCore.previewSize.collect { size ->
-                _uiState.update { it.copy(arPreviewSize = size) }
-            }
-        }
-        viewModelScope.launch {
-            arCore.status.collect { status ->
-                val wasCore = _uiState.value.arEngine == ArEngine.CORE
-                _uiState.update { it.copy(arStatus = status) }
-                if (status == ArStatus.Locked && wasCore) {
-                    val fresh = _uiState.value.arStatus != ArStatus.Locked
-                    arAnchor.reset()
-                    _uiState.update {
-                        it.copy(
-                            anchorDrift = AnchorDrift(),
-                            noticeRes = if (fresh) R.string.ar_locked_on else it.noticeRes,
-                        )
-                    }
-                }
-                if (status == ArStatus.Failed && wasCore) {
-                    // True AR failed mid-session: fall back to the sensor anchor.
-                    startSensorAnchor()
-                    _uiState.update {
-                        it.copy(arEngine = ArEngine.SENSOR, noticeRes = R.string.ar_core_fallback)
-                    }
-                }
-            }
-        }
+        captureController.observe()
+        layerController.observe()
+        arController.observe()
+
         viewModelScope.launch {
             settings.settings.map { it.proUnlocked }.distinctUntilChanged().collect { pro ->
                 _uiState.update { it.copy(proUnlocked = pro) }
@@ -278,169 +257,32 @@ class TraceViewModel @Inject constructor(
         viewModelScope.launch {
             proBilling.events.collect { event ->
                 when (event) {
-                    ProEvent.Purchased -> {
-                        _uiState.update { it.copy(noticeRes = R.string.pro_welcome) }
-                    }
-                    ProEvent.Restored -> Unit
-                    ProEvent.Cancelled -> Unit
-                    ProEvent.Failed -> {
-                        _uiState.update { it.copy(noticeRes = R.string.pro_failed) }
-                    }
-                    ProEvent.Unavailable -> {
-                        _uiState.update { it.copy(noticeRes = R.string.pro_unavailable) }
-                    }
+                    ProEvent.Purchased -> _uiState.update { it.copy(noticeRes = R.string.pro_welcome) }
+                    ProEvent.Restored, ProEvent.Cancelled -> Unit
+                    ProEvent.Failed -> _uiState.update { it.copy(noticeRes = R.string.pro_failed) }
+                    ProEvent.Unavailable -> _uiState.update { it.copy(noticeRes = R.string.pro_unavailable) }
                 }
             }
         }
-        viewModelScope.launch {
-            cameraManager.state.collect { state ->
-                if (state.recording) startTicker() else stopTicker()
-            }
-        }
     }
 
-    private fun onLayersChanged(layers: List<OverlayLayer>) {
-        val state = _uiState.value
-        val activeGone = state.activeLayerId != null && layers.none { it.id == state.activeLayerId }
-        _uiState.update { it.copy(layers = layers) }
-        // The layer is gone, so there is nothing to store for it; fall back to the base image.
-        if (activeGone) showImage(null, storeLeaving = false) else refreshStackBitmaps()
-    }
+    // --- Layers ---
 
-    /** Adds [source] (picked from the gallery) as a layer on this project and shows it. */
-    fun addLayer(source: android.net.Uri, name: String) {
-        if (_uiState.value.layerBusy) return
-        _uiState.update { it.copy(layerBusy = true) }
-        viewModelScope.launch {
-            try {
-                val path = imageStore.persist(source)
-                val id = try {
-                    repository.addLayer(projectId, path, name, _uiState.value.transform, _uiState.value.filter)
-                } catch (e: Exception) {
-                    imageStore.delete(path) // do not orphan the copy if the insert failed
-                    throw e
-                }
-                _uiState.update { it.copy(layerBusy = false) }
-                // The row reaches state through observeLayers; selection follows once it does.
-                selectLayerWhenPresent(id)
-            } catch (_: Exception) {
-                _uiState.update { it.copy(layerBusy = false, noticeRes = R.string.error_loading_image) }
-            }
-        }
-    }
+    fun addLayer(source: Uri, name: String) = layerController.addLayer(source, name)
 
-    private fun selectLayerWhenPresent(id: Long) {
-        viewModelScope.launch {
-            val present = kotlinx.coroutines.withTimeoutOrNull(2_000) {
-                _uiState.first { state -> state.layers.any { it.id == id } }
-            }
-            if (present != null) selectLayer(id)
-        }
-    }
+    fun selectLayer(layerId: Long?) = layerController.selectLayer(layerId)
 
-    /** Shows [layerId], or the project's base image when null. */
-    fun selectLayer(layerId: Long?) {
-        val state = _uiState.value
-        if (layerId == state.activeLayerId) return
-        if (layerId != null && state.layers.none { it.id == layerId }) return
-        showImage(layerId)
-        // Picking an image to work on turns it on.
-        if (layerId == null) {
-            if (state.project?.baseVisible == false) setBaseVisible(true)
-        } else if (state.layers.first { it.id == layerId }.visible.not()) {
-            setLayerVisible(layerId, true)
-        }
-    }
+    fun moveLayer(layerId: Long, offset: Int) = layerController.moveLayer(layerId, offset)
 
-    /** Moves a layer [offset] places up (positive) or down (negative) the stack; the base stays at the bottom. */
-    fun moveLayer(layerId: Long, offset: Int) {
-        val layers = _uiState.value.layers
-        val moved = LayerOrder.move(layers, layerId, offset)
-        if (moved.map { it.id } == layers.map { it.id }) return
-        _uiState.update { it.copy(layers = moved) } // the stack reorders at once; the rows catch up
-        viewModelScope.launch { runCatching { repository.reorderLayers(projectId, moved.map { it.id }) } }
-    }
+    fun setLayerVisible(layerId: Long, visible: Boolean) = layerController.setLayerVisible(layerId, visible)
 
-    /** Shows or hides one layer in the stack. */
-    fun setLayerVisible(layerId: Long, visible: Boolean) {
-        val layer = _uiState.value.layers.firstOrNull { it.id == layerId } ?: return
-        // The eye responds at once; the saved row catches up.
-        _uiState.update { s ->
-            s.copy(layers = s.layers.map { if (it.id == layerId) it.copy(visible = visible) else it })
-        }
-        viewModelScope.launch {
-            runCatching { repository.updateLayer(liveLayer(layer).copy(visible = visible)) }
-        }
-        refreshStackBitmaps()
-    }
+    fun setBaseVisible(visible: Boolean) = layerController.setBaseVisible(visible)
 
-    /** Shows or hides the base image in the stack; saved with the project. */
-    fun setBaseVisible(visible: Boolean) {
-        _uiState.update { it.copy(project = it.project?.copy(baseVisible = visible)) }
-        refreshStackBitmaps()
-    }
+    fun deleteLayer(layer: OverlayLayer) = layerController.deleteLayer(layer)
 
-    /** [layer] with the on-screen placement and filter if it is the one being edited. */
-    private fun liveLayer(layer: OverlayLayer): OverlayLayer {
-        val s = _uiState.value
-        return if (s.activeLayerId == layer.id) layer.copy(transform = s.transform, filter = s.filter) else layer
-    }
+    fun setLayerOpacity(layerId: Long, opacity: Float) = layerController.setLayerOpacity(layerId, opacity)
 
-    /**
-     * Builds the processed bitmaps (edges, posterize) the stack needs for images other than the
-     * active one. Entries that are no longer needed or are out of date are dropped.
-     */
-    private fun refreshStackBitmaps() {
-        stackJob?.cancel()
-        stackJob = viewModelScope.launch {
-            val wanted = _uiState.value.overlayStack().filter { !it.isActive && it.filter.needsBitmap() }
-            _uiState.update { s ->
-                s.copy(
-                    stackBitmaps = s.stackBitmaps.filter { (key, held) ->
-                        wanted.any { it.key == key && it.imagePath == held.path && it.filter == held.filter }
-                    },
-                )
-            }
-            for (entry in wanted) {
-                val held = _uiState.value.stackBitmaps[entry.key]
-                if (held != null && held.path == entry.imagePath && held.filter == entry.filter) continue
-                val bitmap = try {
-                    val source = imageStore.loadBitmap(entry.imagePath) ?: error("Missing image")
-                    filters.filtered(entry.imagePath, source, entry.filter)
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e // a newer refresh replaced this one
-                } catch (_: Exception) {
-                    continue
-                }
-                _uiState.update { it.copy(stackBitmaps = it.stackBitmaps + (entry.key to StackBitmap(entry.imagePath, entry.filter, bitmap))) }
-            }
-        }
-    }
-
-    fun deleteLayer(layer: OverlayLayer) {
-        viewModelScope.launch {
-            // If it is on screen, the layers collector falls back to the base image.
-            runCatching { repository.deleteLayer(layer) }
-        }
-    }
-
-    /** Changes the opacity of the layer on screen; the base image keeps the project opacity. */
-    fun setLayerOpacity(layerId: Long, opacity: Float) {
-        val layer = _uiState.value.layers.firstOrNull { it.id == layerId } ?: return
-        viewModelScope.launch {
-            runCatching { repository.updateLayer(liveLayer(layer).copy(opacity = opacity.coerceIn(0f, 1f))) }
-        }
-    }
-
-    /** Renames the layer on screen; the base image is untouched. */
-    fun renameLayer(layerId: Long, name: String) {
-        val layer = _uiState.value.layers.firstOrNull { it.id == layerId } ?: return
-        val trimmed = name.trim()
-        if (trimmed.isEmpty()) return
-        viewModelScope.launch {
-            runCatching { repository.updateLayer(liveLayer(layer).copy(name = trimmed)) }
-        }
-    }
+    fun renameLayer(layerId: Long, name: String) = layerController.renameLayer(layerId, name)
 
     /**
      * Switches the displayed image. Filtered bitmaps and step layers belong to one image,
@@ -462,7 +304,7 @@ class TraceViewModel @Inject constructor(
         }
         // The debounced saver would write the new image's settings; save the old ones right now.
         if (storeLeaving && leaving.activeLayerId != null) viewModelScope.launch { persist(leaving) }
-        refreshStackBitmaps()
+        layerController.refreshStackBitmaps()
         val state = _uiState.value
         val project = state.project ?: return
         if (state.trainingLevel != null) {
@@ -472,22 +314,7 @@ class TraceViewModel @Inject constructor(
         }
     }
 
-    private fun startTicker() {
-        if (tickerJob != null) return
-        _recordingElapsedSec.value = 0
-        tickerJob = viewModelScope.launch {
-            while (true) {
-                delay(1_000)
-                _recordingElapsedSec.update { it + 1 }
-            }
-        }
-    }
-
-    private fun stopTicker() {
-        tickerJob?.cancel()
-        tickerJob = null
-        _recordingElapsedSec.value = 0
-    }
+    // --- Persistence ---
 
     // Persists overlay state 600ms after the last change. One-way: saving never
     // writes back into _uiState, so this cannot loop.
@@ -527,6 +354,8 @@ class TraceViewModel @Inject constructor(
             }
         }
     }
+
+    // --- Transform, Opacity, Tutorial ---
 
     /** One gesture frame from the overlay; ignored while locked. Drift is display-only. */
     fun onOverlayGesture(pan: Offset, zoom: Float, rotation: Float) {
@@ -579,110 +408,6 @@ class TraceViewModel @Inject constructor(
         viewModelScope.launch { settings.setTutorialCompleted() }
     }
 
-    /** Display transform: user base plus live AR drift when anchored. */
-    fun effectiveTransform(state: TraceUiState, transform: OverlayTransform = state.transform): OverlayTransform =
-        if (state.overlayMode == OverlayMode.AR) arAnchor.resolve(transform) else transform
-
-    fun toggleAnchorMode(activity: Activity) {
-        if (_uiState.value.overlayMode == OverlayMode.AR) {
-            setAnchorMode(OverlayMode.CLASSIC)
-        } else {
-            enableArMode(activity)
-        }
-    }
-
-    /** Kept for callers without an Activity; AR entry goes through [enableArMode]. */
-    fun setAnchorMode(mode: OverlayMode) {
-        if (mode == OverlayMode.AR) {
-            startSensorAnchor()
-            _uiState.update { it.copy(overlayMode = OverlayMode.AR) }
-        } else {
-            stopArAnchors()
-            _uiState.update {
-                it.copy(
-                    overlayMode = OverlayMode.CLASSIC,
-                    anchorDrift = AnchorDrift(),
-                    arEngine = ArEngine.OFF,
-                    arStatus = ArStatus.Idle,
-                    arInstallNudged = false,
-                )
-            }
-        }
-    }
-
-    private fun enableArMode(activity: Activity) {
-        if (cameraState.value.recording) {
-            _uiState.update { it.copy(noticeRes = R.string.ar_no_recording) }
-            return
-        }
-        if (!_uiState.value.proUnlocked) {
-            _uiState.update { it.copy(noticeRes = R.string.pro_required) }
-            proBilling.buyPro(activity)
-            return
-        }
-        // Sensor anchor starts instantly; true AR upgrades it once the surface is ready.
-        if (_uiState.value.arEngine != ArEngine.SENSOR) {
-            startSensorAnchor()
-            _uiState.update { it.copy(overlayMode = OverlayMode.AR) }
-        }
-        if (arCore.availability() != app.picasso.tracer.camera.ArAvailability.Supported) return
-        if (!arCore.ensureInstalled(activity)) {
-            _uiState.update { it.copy(noticeRes = R.string.ar_install, arInstallNudged = true) }
-            return
-        }
-        _uiState.update { it.copy(arEngine = ArEngine.CORE, arStatus = ArStatus.Searching) }
-    }
-
-    /**
-     * Called when the AR TextureView surface is ready. CameraX releases the
-     * camera here so ARCore can take it through the shared session.
-     */
-    fun startCoreAnchor(activity: Activity, texture: SurfaceTexture, widthPx: Int, heightPx: Int) {
-        if (_uiState.value.arEngine != ArEngine.CORE) return
-        stopSensorAnchor()
-        cameraManager.unbind()
-        arCore.start(activity, texture, widthPx, heightPx)
-        _uiState.update { it.copy(noticeRes = R.string.ar_searching) }
-    }
-
-    /** Auto-upgrades sensor AR to true AR after the user returns from ARCore install. */
-    fun retryArCore(activity: Activity) {
-        if (_uiState.value.overlayMode != OverlayMode.AR) return
-        if (_uiState.value.arEngine == ArEngine.CORE) return
-        if (_uiState.value.arInstallNudged) {
-            // Still check silently: the user may have completed the install.
-            if (arCore.availability() != app.picasso.tracer.camera.ArAvailability.Supported) return
-            if (!arCore.ensureInstalled(activity)) return
-            _uiState.update { it.copy(arEngine = ArEngine.CORE, arStatus = ArStatus.Searching) }
-            return
-        }
-        if (arCore.availability() != app.picasso.tracer.camera.ArAvailability.Supported) return
-        enableArMode(activity)
-    }
-
-    private fun startSensorAnchor() {
-        if (!motionTracker.available) {
-            _uiState.update { it.copy(noticeRes = R.string.ar_unavailable) }
-            return
-        }
-        arCore.stop()
-        motionTracker.start { drift ->
-            arAnchor.update(drift)
-            _uiState.update { it.copy(anchorDrift = drift) }
-        }
-        _uiState.update { it.copy(arEngine = ArEngine.SENSOR, arStatus = ArStatus.Locked) }
-    }
-
-    private fun stopSensorAnchor() {
-        motionTracker.stop()
-    }
-
-    private fun stopArAnchors() {
-        stopSensorAnchor()
-        arCore.stop()
-        arAnchor.reset()
-    }
-
     fun flipHorizontal() {
         _uiState.update { it.copy(transform = it.transform.toggledFlipH(), placementTick = it.placementTick + 1) }
     }
@@ -696,7 +421,7 @@ class TraceViewModel @Inject constructor(
             val opacity = settings.settings.first().defaultOpacity
             val layer = _uiState.value.activeLayer
             // A layer resets its own opacity; the base opacity stays with the base image.
-            if (layer != null) runCatching { repository.updateLayer(liveLayer(layer).copy(opacity = opacity)) }
+            if (layer != null) runCatching { repository.updateLayer(layerController.liveLayer(layer).copy(opacity = opacity)) }
             _uiState.update {
                 it.copy(
                     transform = OverlayTransform.initial(),
@@ -706,6 +431,22 @@ class TraceViewModel @Inject constructor(
             }
         }
     }
+
+    // --- AR Anchoring ---
+
+    fun effectiveTransform(state: TraceUiState, transform: OverlayTransform = state.transform): OverlayTransform =
+        arController.effectiveTransform(state, transform)
+
+    fun toggleAnchorMode(activity: Activity) = arController.toggleAnchorMode(activity)
+
+    fun setAnchorMode(mode: OverlayMode) = arController.setAnchorMode(mode)
+
+    fun startCoreAnchor(activity: Activity, texture: SurfaceTexture, widthPx: Int, heightPx: Int) =
+        arController.startCoreAnchor(activity, texture, widthPx, heightPx)
+
+    fun retryArCore(activity: Activity) = arController.retryArCore(activity)
+
+    // --- Filters, Steps & Training Wheels ---
 
     fun setFilter(filter: TraceFilter) {
         val project = _uiState.value.project ?: return
@@ -727,70 +468,6 @@ class TraceViewModel @Inject constructor(
             )
         }
         applyBitmapFilter(project)
-    }
-
-    /**
-     * Before/after: photo of the drawing (after) composited side-by-side
-     * with the reference (before) and saved to the gallery. One thin divider.
-     */
-    fun captureBeforeAfter() {
-        val project = _uiState.value.project ?: return
-        val beforePath = _uiState.value.activeImagePath ?: project.imagePath
-        if (_uiState.value.beforeAfterSaving) return
-        _uiState.update { it.copy(beforeAfterSaving = true) }
-        captureStillFile(
-            onResult = { file ->
-                viewModelScope.launch {
-                    val saved = runCatching {
-                        val before = imageStore.loadBitmap(beforePath, BeforeAfter.PANEL_HEIGHT)
-                            ?: error("Missing reference")
-                        val after = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
-                            ?: error("Missing capture")
-                        val composed = BeforeAfter.sideBySide(before, after)
-                        imageStore.saveToGallery(composed, "before-after-${System.currentTimeMillis()}.jpg")
-                    }.getOrDefault(false)
-                    runCatching { file.delete() }
-                    _uiState.update {
-                        it.copy(
-                            beforeAfterSaving = false,
-                            noticeRes = if (saved) R.string.before_after_saved else R.string.recording_failed,
-                            suggestLessHelp = saved && it.canGraduate,
-                        )
-                    }
-                }
-            },
-            onError = {
-                _uiState.update { it.copy(beforeAfterSaving = false, noticeRes = R.string.recording_failed) }
-            },
-        )
-    }
-
-    /** Saves the current view to the gallery as a still image. */
-    fun saveImage() {
-        if (_uiState.value.stillSaving) return
-        _uiState.update { it.copy(stillSaving = true) }
-        captureStillFile(
-            onResult = { file ->
-                viewModelScope.launch {
-                    val saved = runCatching {
-                        val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
-                            ?: error("Missing capture")
-                        imageStore.saveToGallery(bitmap, "still-${System.currentTimeMillis()}.jpg")
-                    }.getOrDefault(false)
-                    runCatching { file.delete() }
-                    _uiState.update {
-                        it.copy(
-                            stillSaving = false,
-                            noticeRes = if (saved) R.string.saved_image else R.string.recording_failed,
-                            suggestLessHelp = saved && it.canGraduate,
-                        )
-                    }
-                }
-            },
-            onError = {
-                _uiState.update { it.copy(stillSaving = false, noticeRes = R.string.recording_failed) }
-            },
-        )
     }
 
     fun toggleSteps() {
@@ -914,6 +591,8 @@ class TraceViewModel @Inject constructor(
         }
     }
 
+    // --- Guides, Strobe, Torch, Light ---
+
     fun toggleGrid() {
         _uiState.update { it.copy(gridVisible = !it.gridVisible) }
     }
@@ -960,7 +639,7 @@ class TraceViewModel @Inject constructor(
     }
 
     /** Rebinds CameraX after ARCore releases the camera; restores the torch. */
-    suspend fun rebindCamera(owner: androidx.lifecycle.LifecycleOwner) {
+    suspend fun rebindCamera(owner: LifecycleOwner) {
         cameraManager.bindPreview(owner)
         if (_uiState.value.torchOn && _uiState.value.arEngine != ArEngine.CORE) {
             cameraManager.setTorch(true)
@@ -985,61 +664,17 @@ class TraceViewModel @Inject constructor(
         _uiState.update { it.copy(brightness = 0f, contrast = 1f) }
     }
 
-    /** Picks the speed for the next recording. Locked while recording so one video has one speed. */
-    fun setRecordingSpeed(speed: RecordingSpeed) {
-        if (cameraManager.state.value.recording) return
-        _uiState.update { it.copy(recordingSpeed = speed) }
-        viewModelScope.launch { settings.setRecordingSpeed(speed) }
-    }
+    // --- Capture & Wall Mode ---
 
-    fun startRecording(withAudio: Boolean) {
-        val speed = _uiState.value.recordingSpeed
-        val stamp = System.currentTimeMillis()
-        if (!speed.isSpedUp) {
-            cameraManager.startRecording(
-                fileName = "Picasso-$stamp.mp4",
-                withAudio = withAudio,
-                onSaved = { uri ->
-                    _uiState.update { it.copy(noticeRes = R.string.recording_saved, savedVideo = uri) }
-                },
-                onError = {
-                    _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
-                },
-            )
-            return
-        }
-        // Timelapse: record 1x into a private file (no audio, it would be sped into noise), then
-        // the app-scoped exporter speeds it up and files it, even if this screen is left meanwhile.
-        val source = recordingExporter.newSourceFile(stamp)
-        val displayName = "Picasso-timelapse-$stamp-${speed.label}.mp4"
-        cameraManager.startRecording(
-            fileName = displayName,
-            withAudio = false,
-            outputFile = source,
-            onSaved = {
-                recordingExporter.export(source, speed, displayName) { outcome, uri ->
-                    _uiState.update {
-                        it.copy(
-                            savedVideo = uri ?: it.savedVideo,
-                            noticeRes = when (outcome) {
-                                RecordingExporter.Outcome.SPED_UP -> R.string.timelapse_video_saved
-                                RecordingExporter.Outcome.SAVED_UNCHANGED -> R.string.timelapse_video_unchanged
-                                RecordingExporter.Outcome.FAILED -> R.string.recording_failed
-                            },
-                        )
-                    }
-                }
-            },
-            onError = {
-                runCatching { source.delete() }
-                _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
-            },
-        )
-    }
+    fun captureBeforeAfter() = captureController.captureBeforeAfter()
 
-    fun stopRecording() {
-        cameraManager.stopRecording()
-    }
+    fun saveImage() = captureController.saveImage()
+
+    fun setRecordingSpeed(speed: RecordingSpeed) = captureController.setRecordingSpeed(speed)
+
+    fun startRecording(withAudio: Boolean) = captureController.startRecording(withAudio)
+
+    fun stopRecording() = captureController.stopRecording()
 
     fun notifyRecordingFailed() {
         _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
@@ -1049,77 +684,17 @@ class TraceViewModel @Inject constructor(
         _uiState.update { it.copy(noticeRes = null) }
     }
 
-    private fun captureStillFile(onResult: (java.io.File) -> Unit, onError: () -> Unit) {
-        if (_uiState.value.arEngine == ArEngine.CORE) arCore.captureStill(onResult, onError)
-        else cameraManager.captureStillToFile(onResult, onError)
-    }
-
     fun toggleWallMode() {
         _uiState.update { it.copy(wallMode = !it.wallMode) }
     }
 
-    fun toggleTimelapse() {
-        if (_uiState.value.timelapseActive) stopTimelapse() else startTimelapse()
-    }
+    fun toggleTimelapse() = captureController.toggleTimelapse()
 
-    fun setTimelapseInterval(seconds: Int) {
-        _uiState.update { it.copy(timelapseIntervalSec = seconds.coerceIn(2, 120)) }
-        if (_uiState.value.timelapseActive) {
-            stopTimelapse()
-            startTimelapse()
-        }
-    }
-
-    private fun startTimelapse() {
-        _uiState.update { it.copy(timelapseActive = true) }
-        timelapseJob?.cancel()
-        timelapseJob = viewModelScope.launch {
-            while (true) {
-                if (_uiState.value.arEngine == ArEngine.CORE) {
-                    captureCoreTimelapseFrame()
-                } else {
-                    cameraManager.captureStill(
-                        onSaved = { _uiState.update { s -> s.copy(timelapseCount = s.timelapseCount + 1) } },
-                        onError = { _uiState.update { s -> s.copy(noticeRes = R.string.recording_failed) } },
-                    )
-                }
-                delay(_uiState.value.timelapseIntervalSec * 1_000L)
-            }
-        }
-    }
-
-    private suspend fun captureCoreTimelapseFrame() {
-        suspend fun awaitFile(): java.io.File? =
-            kotlinx.coroutines.suspendCancellableCoroutine { cont ->
-                arCore.captureStill(
-                    onResult = { cont.resume(it) },
-                    onError = { cont.resume(null) },
-                )
-            }
-        val file = awaitFile()
-        if (file == null) {
-            _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
-            return
-        }
-        val ok = runCatching {
-            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
-                ?: error("Missing frame")
-            imageStore.saveToGallery(bitmap, "timelapse-${System.currentTimeMillis()}.jpg")
-        }.getOrDefault(false)
-        runCatching { file.delete() }
-        if (ok) _uiState.update { it.copy(timelapseCount = it.timelapseCount + 1) }
-        else _uiState.update { it.copy(noticeRes = R.string.recording_failed) }
-    }
-
-    private fun stopTimelapse() {
-        timelapseJob?.cancel()
-        timelapseJob = null
-        _uiState.update { it.copy(timelapseActive = false) }
-    }
+    fun setTimelapseInterval(seconds: Int) = captureController.setTimelapseInterval(seconds)
 
     override fun onCleared() {
-        timelapseJob?.cancel()
-        stopArAnchors()
+        captureController.stop()
+        arController.stop()
         cameraManager.unbind()
         super.onCleared()
     }
